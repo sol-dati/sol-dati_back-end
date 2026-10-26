@@ -1,0 +1,23 @@
+# build
+target/
+
+# Eclipse
+.settings/
+.classpath
+.project
+
+# IntelliJ / VS Code
+.idea/
+*.iml
+.vscode/
+
+# log e file generati
+*.log
+*.log.*
+*.gz
+define.sql
+drop.sql
+
+# strumenti locali
+sonar-scanner*/
+*.zip
