@@ -82,7 +82,7 @@ public class SonarApiServiceImpl implements SonarApiService {
 
         // current presente, un'elaborazione conclusa o in corso
         
-        Map<String, Object> current = (Map<String, Object>) body.get("current");
+        Map<String, Object> current =  (Map<String, Object>) body.get("current");
 
         if (current != null) {
             return gestisciElaborazioneCorrente(current, projectKey, startProcess);

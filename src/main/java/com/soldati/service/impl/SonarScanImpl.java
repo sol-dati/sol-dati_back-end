@@ -117,11 +117,9 @@ public class SonarScanImpl implements SonarScanService{
             // Passo 8: salviamo i risultati sul DB
             SonarProcessReq processReq = SonarScanMapper.buildSonarProcessReq(req, momentoAvvio);
 
-            SonarProcessDTO processoSalvato = sonarSaveService.salvaRisultati(processReq, result);
+            SonarProcessDTO processoSalvato = sonarSaveService.salvaAnalisi(processReq, req.getTag(), result);
 
             log.debug("Risultati salvati su DB: sonar_process id={}", processoSalvato.getId());
-            
-            sonarSaveService.salvaFact(processoSalvato.getId(), req.getProjectName(), req.getTag(), result);
 
             return result;
 

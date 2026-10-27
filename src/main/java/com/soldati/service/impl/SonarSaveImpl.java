@@ -85,7 +85,18 @@ public class SonarSaveImpl implements SonarSaveService {
 
     @Override
     @Transactional
-    public SonarProcessDTO salvaRisultati(SonarProcessReq req, SonarResultDTO result) {
+    public SonarProcessDTO salvaAnalisi(SonarProcessReq req, String tag, SonarResultDTO result) {
+
+        // se il salvataggio delle righe fallisce, la transazione annulla anche la riga di sonar_process
+        SonarProcessDTO processo = salvaProcesso(req);
+
+        salvaFact(processo.getId(), req.getProjectName(), tag, result);
+
+        return processo;
+    }
+
+    // riga di sonar_process
+    private SonarProcessDTO salvaProcesso(SonarProcessReq req) {
 
         log.debug("salva sonar process {}", req);
 

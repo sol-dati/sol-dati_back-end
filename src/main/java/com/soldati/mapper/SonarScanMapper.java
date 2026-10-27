@@ -125,41 +125,8 @@ public class SonarScanMapper {
 	            .description(valoreString(dettagli.get("htmlDesc")))
 	            .issuesCount(numeroViolazioni)
 	            .language(valoreString(dettagli.get("lang")))
-	            .tags(leggiTag(dettagli))
-	            .softwareQualities(leggiSoftwareQualities(dettagli))
 	            .build();
 	}
 
-	//---------------------------------------//
-	// tag dell'utente ("tags") e di sistema ("sysTags") restituiti da /api/rules/show
-	private static List<String> leggiTag(Map<String, Object> dettagli) {
-
-	    List<String> tag = new ArrayList<>();
-
-	    for (String campo : List.of("tags", "sysTags")) {
-	        if (dettagli.get(campo) instanceof List<?> lista) {
-	            for (Object t : lista) {
-	                if (t != null && !tag.contains(t.toString())) {
-	                    tag.add(t.toString());
-	                }
-	            }
-	        }
-	    }
-	    return tag;
-	}
-
-	//---------------------------------------//
-	private static List<String> leggiSoftwareQualities(Map<String, Object> dettagli) {
-
-	    List<String> qualita = new ArrayList<>();
-
-	    if (dettagli.get("impacts") instanceof List<?> impacts) {
-	        for (Object impact : impacts) {
-	            if (impact instanceof Map<?, ?> mappa && mappa.get("softwareQuality") != null) {
-	                qualita.add(mappa.get("softwareQuality").toString());
-	            }
-	        }
-	    }
-	    return qualita;
-	}
+	
 }
