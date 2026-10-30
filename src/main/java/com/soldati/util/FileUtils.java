@@ -105,16 +105,17 @@ public final class FileUtils {
         }
     }
 
-     // true se almeno un modulo Maven ha la sua src/main/java:
-	 public static boolean haSorgentiJava(Path sourceDir) throws IOException {
-	     Path srcMainJava = Path.of("src", "main", "java");
-	     try (Stream<Path> file = Files.walk(sourceDir)) {
-	         return file.filter(Files::isDirectory)
-	                 .filter(p -> p.endsWith(srcMainJava))
-	                 .filter(p -> !p.toString().contains("node_modules") && !p.toString().contains("target"))
-	                 .anyMatch(p -> Files.isRegularFile(p.getParent().getParent().getParent().resolve("pom.xml")));
-	     }
-	 }
+
+    // Se manca il plugin maven di Sonar passiamo tutta la cartella come sorgente.
+    public static boolean haSorgentiJava(Path sourceDir) throws IOException {
+        Path srcMainJava = Path.of("src", "main", "java");
+        try (Stream<Path> file = Files.walk(sourceDir)) {
+            return file.filter(Files::isDirectory)
+                    .filter(p -> p.endsWith(srcMainJava))
+                    .filter(p -> !p.toString().contains("node_modules") && !p.toString().contains("target"))
+                    .anyMatch(p -> Files.isRegularFile(p.getParent().getParent().getParent().resolve("pom.xml")));
+        }
+    }
 
     // cancella la cartella temporanea creata per i sorgenti scaricati
     public static void pulisciCartellaTemporanea(File sourceDir) {

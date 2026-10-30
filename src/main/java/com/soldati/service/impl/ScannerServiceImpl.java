@@ -23,8 +23,8 @@ import com.soldati.util.FileUtils;
 import lombok.extern.slf4j.Slf4j;
 
 // Analisi Sonar con lo scanner adatto al progetto:
-// - pom.xml nella cartella principale -> build Maven con la JDK del progetto, poi SonarScanner for Maven con la JDK del backend
-// - nessun pom.xml principale         -> SonarScanner CLI (analizza la cartella così com'è)
+// - pom.xml + codice Java in un modulo Maven -> build Maven con la prima JDK che funziona, poi SonarScanner for Maven
+// - tutti gli altri progetti                 -> SonarScanner CLI (analizza la cartella così com'è)
 @Slf4j
 @Service
 public class ScannerServiceImpl implements ScannerService {
@@ -41,14 +41,9 @@ public class ScannerServiceImpl implements ScannerService {
     @Value("${maven.sonar.parameter}")
     private String mavenSonarParameter;
 
-    // parametri per analizzare tutta la cartella (sorgenti ed esclusioni):
-    // usati per i progetti Maven senza src/main/java (es. Python) e per tutti quelli analizzati con la CLI
+    // sorgenti ed esclusioni per i progetti analizzati con la CLI (separati da "|")
     @Value("${maven.command.parameter.non.java}")
     private String mavenCommandParameterNonJava;
-
-    // settings.xml di Maven con il repository aziendale
-    @Value("${maven.settings.file:}")
-    private String mavenSettingsFile;
 
     // dove è installato SonarScanner CLI sul server (la cartella che contiene bin/)
     @Value("${sonar.scanner.home}")
@@ -58,7 +53,7 @@ public class ScannerServiceImpl implements ScannerService {
     @Value("${sonar.scanner.parameter:}")
     private String sonarScannerParameter;
 
-    // server e token sonar
+    // server e token sonar: alla CLI arrivano come variabili d'ambiente, non sulla riga di comando
     @Value("${sonar.host.url}")
     private String sonarHostUrl;
 
@@ -68,7 +63,6 @@ public class ScannerServiceImpl implements ScannerService {
     // JDK da provare in ordine per il build (in fondo si aggiunge sempre la Java del backend)
     @Value("${sonar.jdk.compilazione:}")
     private List<String> jdkCompilazione;
-
 
     @Override
     public int runSonarAnalisi(File sourceDir, String projectName, String projectKey) throws Exception {
@@ -81,7 +75,6 @@ public class ScannerServiceImpl implements ScannerService {
         }
 
         Path cartella = sourceDir.toPath();
-        
         // Maven serve solo se c'è codice Java da compilare; tutto il resto va con la CLI
         boolean progettoJavaMaven = FileUtils.haPomPrincipale(cartella) && FileUtils.haSorgentiJava(cartella);
 
@@ -122,7 +115,7 @@ public class ScannerServiceImpl implements ScannerService {
             return exitCode;
         }
 
-        // passo 2: analisi Sonar sulle classi già compilate (lo scanner richiede Java 17+)
+        // passo 2: analisi Sonar sulle classi già compilate (lo scanner richiede una Java recente)
         List<String> parametriSonar = new ArrayList<>();
         for (String parametro : mavenSonarParameter.split(",")) {
             parametriSonar.add(parametro.replace("?", "-Dsonar.projectKey=" + projectKey));
@@ -161,10 +154,6 @@ public class ScannerServiceImpl implements ScannerService {
         request.setBaseDirectory(sourceDir);   // cartella dei sorgenti scaricati
         request.setBatchMode(true);            // esecuzione senza interazione
         request.setJavaHome(javaHome);         // mai la Java trovata nel PATH
-
-        if (!mavenSettingsFile.isBlank()) {
-            request.setUserSettingsFile(new File(mavenSettingsFile));
-        }
         parametri.forEach(request::addArg);
 
         Invoker invoker = new DefaultInvoker();
@@ -178,10 +167,10 @@ public class ScannerServiceImpl implements ScannerService {
         return result.getExitCode();
     }
 
-    // progetto senza pom.xml principale
+    // progetto senza pom.xml o senza codice Java: SonarScanner CLI sulla cartella
     private int analisiScannerCli(File sourceDir, String projectKey) throws Exception {
 
-        log.info("Nessun pom.xml principale per projectKey={}: analisi con SonarScanner CLI", projectKey);
+        log.info("Progetto senza pom.xml o senza codice Java per projectKey={}: analisi con SonarScanner CLI", projectKey);
 
         List<String> comando = new ArrayList<>();
         comando.add(eseguibileScanner().getAbsolutePath());
@@ -197,7 +186,7 @@ public class ScannerServiceImpl implements ScannerService {
             }
         }
 
-        // file .java senza classi compilate
+        // file .java senza classi compilate: Sonar richiede sonar.java.binaries, gli passo una cartella vuota
         if (FileUtils.haFileJava(sourceDir.toPath())) {
             FileUtils.creaCartellaBinariVuota(sourceDir.toPath());
             comando.add("-Dsonar.java.binaries=" + FileUtils.CARTELLA_BINARI_VUOTA);
@@ -226,6 +215,7 @@ public class ScannerServiceImpl implements ScannerService {
         return exitCode;
     }
 
+    // bin/sonar-scanner.bat su Windows, bin/sonar-scanner sugli altri sistemi
     private File eseguibileScanner() {
 
         boolean windows = System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win");

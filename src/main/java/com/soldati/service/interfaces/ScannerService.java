@@ -5,5 +5,5 @@ import java.io.File;
 public interface ScannerService {
 
     // analisi maven + sonar sulla cartella indicata, projectKey passata per identificare l'analisi su SonarQube
-    int runSonarAnalisi(File sourceDir, String projectName, String projectKey) throws Exception;
+	int runSonarAnalisi(File sourceDir, String projectName, String projectKey) throws Exception;
 }
