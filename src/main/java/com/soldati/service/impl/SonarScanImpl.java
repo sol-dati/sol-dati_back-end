@@ -20,8 +20,8 @@ import com.soldati.dto.output.SonarResultDTO;
 import com.soldati.dto.output.SonarRuleDTO;
 import com.soldati.mapper.SonarScanMapper;
 import com.soldati.service.interfaces.CatalogoSonarService;
-import com.soldati.service.interfaces.KpiConfigService;
 import com.soldati.service.interfaces.GitLabService;
+import com.soldati.service.interfaces.KpiConfigService;
 import com.soldati.service.interfaces.ScannerService;
 import com.soldati.service.interfaces.SonarApiService;
 import com.soldati.service.interfaces.SonarSaveService;
@@ -34,41 +34,40 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 @Service
-public class SonarScanImpl implements SonarScanService{
-	
-	// Ogni quanti secondi controllare se SonarQube ha finito
+public class SonarScanImpl implements SonarScanService {
+
+    // Ogni quanti secondi controllare se SonarQube ha finito
     private static final long POLL_INTERVAL_SECONDS = 10;
 
-    // Numero massimo di controlli 
+    // Numero massimo di controlli
     private static final long MAX_POLL_ATTEMPTS = 30;
-	
-	private final GitLabService gitLabService;
+
+    private final GitLabService gitLabService;
     private final ScannerService scannerService;
     private final SonarApiService sonarApiService;
     private final SonarSaveService sonarSaveService;
     private final KpiConfigService kpiConfigService;
     private final CatalogoSonarService catalogoSonarService;
-	
-	@Override
-	public SonarResultDTO avviaAnalisi(AvviaSqReq req) throws Exception {
-		
-		if (req.getProjectName() == null || req.getProjectName().isBlank()) {
+
+    @Override
+    public SonarResultDTO avviaAnalisi(AvviaSqReq req) throws Exception {
+
+        if (req.getProjectName() == null || req.getProjectName().isBlank()) {
             throw new IllegalArgumentException("projectName non può essere vuoto");
         }
         if (req.getTag() == null || req.getTag().isBlank()) {
             throw new IllegalArgumentException("tag non può essere vuoto");
         }
-        
+
         if (req.getRelease() == null) {
             throw new IllegalArgumentException("release obbligatoria");
         }
 
         log.debug("Avvio analisi SQ: projectName={}, release={}, sprint={}, tag={}",
                 req.getProjectName(), req.getRelease(), req.getSprint(), req.getTag());
-        
-        // Passo 1: troviamo il progetto su GitLab 
+
+        // Passo 1: troviamo il progetto su GitLab
         GitLabProjectDTO gitLabProject = gitLabService.findProjectByName(req.getProjectName());
-       
 
         // Passo 2: scarichiamo i sorgenti del tag scelto
         File sourceDir = gitLabService.fetchSourceForTag(gitLabProject.getId(), req.getTag());
@@ -77,35 +76,34 @@ public class SonarScanImpl implements SonarScanService{
         String projectKey = SonarScanMapper.buildProjectKey(req);
 
         try {
-        	//istante in cui si avvia l'analisi
-            Date momentoAvvio  = new Date();
+            // istante in cui si avvia l'analisi
+            Date momentoAvvio = new Date();
 
             // Passo 3: lanciamo maven, che a sua volta invia l'analisi a SonarQube
-            scannerService.runSonarAnalisi(sourceDir, projectKey);
+            scannerService.runSonarAnalisi(sourceDir, req.getProjectName(), projectKey);
 
             log.debug("Maven/Sonar completato, in attesa che SonarQube finisca di elaborare projectKey={}", projectKey);
-            
-         // Passo 4: aspettiamo che SonarQube finisca
+
+            // Passo 4: aspettiamo che SonarQube finisca
             waitCompletamentoSonar(projectKey, momentoAvvio);
 
             log.debug("Elaborazione SonarQube completata per projectKey={}", projectKey);
-            
+
+            // Passo 5: allineiamo le tabelle di catalogo con SonarQube
             catalogoSonarService.sincronizzaMetriche();
             catalogoSonarService.sincronizzaLanguage();
             catalogoSonarService.sincronizzaType();
             catalogoSonarService.sincronizzaSeverity();
 
             // Passo 6: recuperiamo i risultati
-            Map<String, Object> resultSonar =  sonarApiService.getResult(projectKey);
+            Map<String, Object> resultSonar = sonarApiService.getResult(projectKey);
 
             log.debug("Metriche SonarQube recuperate per projectKey={}", projectKey);
-
 
             // Passo 7: recuperiamo tutte le issue
             List<Map<String, Object>> issues = sonarApiService.getIssues(projectKey);
 
-
-         // Passo 7b: costruiamo la lista delle rules (una sola volta per regola distinta)
+            // Passo 7b: costruiamo la lista delle rules (una sola volta per regola distinta)
             List<SonarRuleDTO> rules = costruisciRules(projectKey, issues);
 
             // Passo 7c: regole del piano qualità (kpi_compliance) attive su Sonar ma senza violazioni,
@@ -113,7 +111,7 @@ public class SonarScanImpl implements SonarScanService{
             rules.addAll(costruisciRegoleSenzaViolazioni(projectKey, rules));
 
             SonarResultDTO result = SonarScanMapper.buildSonarResult(projectKey, resultSonar, rules);
-            
+
             // Passo 8: salviamo i risultati sul DB
             SonarProcessReq processReq = SonarScanMapper.buildSonarProcessReq(req, momentoAvvio);
 
@@ -124,19 +122,16 @@ public class SonarScanImpl implements SonarScanService{
             return result;
 
         } finally {
-        	FileUtils.pulisciCartellaTemporanea(sourceDir);
+            FileUtils.pulisciCartellaTemporanea(sourceDir);
         }
-
     }
-	
-    //Controlla ripetutamente se SonarQube ha finito di elaborare
 
+    // Controlla ripetutamente se SonarQube ha finito di elaborare
     private void waitCompletamentoSonar(String projectKey, Date momentoAvvio) throws Exception {
 
         for (int tentativo = 1; tentativo <= MAX_POLL_ATTEMPTS; tentativo++) {
 
             // Aspettiamo qualche secondo prima di ogni controllo
-        	
             TimeUnit.SECONDS.sleep(POLL_INTERVAL_SECONDS);
 
             boolean ancoraInCorso = sonarApiService.isRunning(projectKey, momentoAvvio);

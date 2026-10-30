@@ -6,6 +6,5 @@ import org.springframework.stereotype.Repository;
 import com.soldati.models.Stato;
 
 @Repository
-public interface StatoRepo extends JpaRepository<Stato, Long>{
-
+public interface StatoRepo extends JpaRepository<Stato, Long> {
 }

@@ -12,7 +12,7 @@ import com.soldati.models.MetricaSq;
 public interface MetricaSqRepo extends JpaRepository<MetricaSq, Long> {
 
     boolean existsByMetrica(String metrica);
-    
+
     @Query("SELECT m.metrica FROM MetricaSq m ORDER BY m.id")
     List<String> findAllMetriche();
 }

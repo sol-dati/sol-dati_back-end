@@ -32,5 +32,4 @@ public class SonarProcess {
 
     @Column(name = "process_date")
     private LocalDateTime processDate;
-
 }

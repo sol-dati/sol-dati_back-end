@@ -5,14 +5,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Setter
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class GitLabProjectDTO {
-	
-	private Long id;
+
+    private Long id;
     private String name;
     private String pathWithNamespace;
-
 }

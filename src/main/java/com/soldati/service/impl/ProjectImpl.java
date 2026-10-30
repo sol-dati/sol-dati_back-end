@@ -22,60 +22,60 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 @Service
-public class ProjectImpl implements ProjectService{
+public class ProjectImpl implements ProjectService {
 
-	private final ProjectRepo repo;
-	private final GitLabService gitLabService;
-	
-	@Override
-	public int sincronizzaDaGitLab() throws SoldatiException {
+    private final ProjectRepo repo;
+    private final GitLabService gitLabService;
 
-	    List<String> projectNames = gitLabService.getProjectNames();
+    @Override
+    public int sincronizzaDaGitLab() throws SoldatiException {
 
-	    int nuove = 0;
+        List<String> projectNames = gitLabService.getProjectNames();
 
-	    for (String nome : projectNames) {
-	        try {
-	            nuove += create(nome);
-	        } catch (Exception e) {
-	            log.warn("Sync GitLab fallita per il progetto {}: {}", nome, e.getMessage());
-	        }
-	    }
+        int nuove = 0;
 
-	    return nuove;
-	}
+        for (String nome : projectNames) {
+            try {
+                nuove += create(nome);
+            } catch (Exception e) {
+                log.warn("Sync GitLab fallita per il progetto {}: {}", nome, e.getMessage());
+            }
+        }
 
-	@Override
-	public int create(String projectName) throws SoldatiException {
+        return nuove;
+    }
 
-	    List<String> tagGitLab = gitLabService.getTags(projectName);
-	    Set<String> tagPresenti = repo.findTagSetByProjectName(projectName);
+    @Override
+    public int create(String projectName) throws SoldatiException {
 
-	    List<Project> newRec = new ArrayList<>();
+        List<String> tagGitLab = gitLabService.getTags(projectName);
+        Set<String> tagPresenti = repo.findTagSetByProjectName(projectName);
 
-	    for (String tag : tagGitLab) {
-	        if (tag == null || tag.isBlank() || tagPresenti.contains(tag)) {
-	            continue;
-	        }
-	        newRec.add(Mapper.createProject(projectName, tag));
-	        tagPresenti.add(tag);
-	    }
+        List<Project> newRec = new ArrayList<>();
 
-	    repo.saveAll(newRec);
+        for (String tag : tagGitLab) {
+            if (tag == null || tag.isBlank() || tagPresenti.contains(tag)) {
+                continue;
+            }
+            newRec.add(Mapper.createProject(projectName, tag));
+            tagPresenti.add(tag);
+        }
 
-	    return newRec.size();
-	}
-	
-	@Override
-	@Transactional(readOnly = true)
-	public List<ProjectDTO> findAll(String projectName) throws SoldatiException {
+        repo.saveAll(newRec);
 
-	    List<Project> righe = (projectName == null || projectName.isBlank())
-	            ? repo.findAll()
-	            : repo.findByProjectNameOrderByTagDesc(projectName.trim().toLowerCase(Locale.ROOT));
+        return newRec.size();
+    }
 
-	    return righe.stream()
-	            .map(Mapper::buildProgettoDTO)
-	            .toList();
-	}
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProjectDTO> findAll(String projectName) throws SoldatiException {
+
+        List<Project> righe = (projectName == null || projectName.isBlank())
+                ? repo.findAll()
+                : repo.findByProjectNameOrderByTagDesc(projectName.trim().toLowerCase(Locale.ROOT));
+
+        return righe.stream()
+                .map(Mapper::buildProgettoDTO)
+                .toList();
+    }
 }

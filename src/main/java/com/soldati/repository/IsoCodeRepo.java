@@ -6,6 +6,5 @@ import org.springframework.stereotype.Repository;
 import com.soldati.models.IsoCode;
 
 @Repository
-public interface IsoCodeRepo extends JpaRepository<IsoCode, String>{
-
+public interface IsoCodeRepo extends JpaRepository<IsoCode, String> {
 }

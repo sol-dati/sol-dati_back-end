@@ -16,18 +16,18 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
-@Setter
 @Getter
+@Setter
 @DynamicInsert
 @Entity
 @Table(name = "project")
 public class Project {
-	
-	@Id
+
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
-	@Column(name = "project_name", nullable = false, length = 200)
+
+    @Column(name = "project_name", nullable = false, length = 200)
     private String projectName;
 
     @Column(name = "release_number")
@@ -45,5 +45,4 @@ public class Project {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_stato_sq")
     private Stato stato;
-
 }

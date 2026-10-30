@@ -8,11 +8,11 @@ import java.util.Set;
 import com.soldati.exception.SoldatiException;
 
 public interface SonarApiService {
-	
-	// verifica se SonarQube sta ancora elaborando l'analisi.
-	boolean isRunning(String projectKey, Date startProcess) throws SoldatiException;
-	
-	// recupera le metriche principali 
+
+    // verifica se SonarQube sta ancora elaborando l'analisi.
+    boolean isRunning(String projectKey, Date startProcess) throws SoldatiException;
+
+    // recupera le metriche principali
     Map<String, Object> getResult(String projectKey) throws SoldatiException;
 
     // recupera i dettagli (nome, descrizione, tipo ecc.)

@@ -6,9 +6,8 @@ import com.soldati.dto.output.ProjectDTO;
 import com.soldati.exception.SoldatiException;
 
 public interface ProjectService {
-	
-	int sincronizzaDaGitLab() throws SoldatiException;
-	int create(String projectName) throws SoldatiException;
-	List<ProjectDTO> findAll(String projectName) throws SoldatiException;
 
+    int sincronizzaDaGitLab() throws SoldatiException;
+    int create(String projectName) throws SoldatiException;
+    List<ProjectDTO> findAll(String projectName) throws SoldatiException;
 }

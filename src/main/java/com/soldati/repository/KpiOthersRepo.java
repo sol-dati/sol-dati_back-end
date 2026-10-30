@@ -6,6 +6,5 @@ import org.springframework.stereotype.Repository;
 import com.soldati.models.KpiOthers;
 
 @Repository
-public interface KpiOthersRepo extends JpaRepository<KpiOthers, Long>{
-
+public interface KpiOthersRepo extends JpaRepository<KpiOthers, Long> {
 }

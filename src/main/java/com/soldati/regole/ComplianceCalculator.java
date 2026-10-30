@@ -18,10 +18,13 @@ public final class ComplianceCalculator {
 
     private static final Pattern NUMERO = Pattern.compile("^-?[0-9]+([.,][0-9]+)?$");
 
+    private ComplianceCalculator() {
+    }
+
     // sonar_values -> numero (per il confronto con le soglie)
     public static BigDecimal valoreNumerico(String valore) {
 
-    	if (valore == null) {
+        if (valore == null) {
             return BigDecimal.ZERO;
         }
 

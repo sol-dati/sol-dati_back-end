@@ -46,7 +46,7 @@ public class SonarScanController {
 
         return ResponseEntity.status(status).body(r);
     }
-    
+
     @GetMapping("/status")
     public ResponseEntity<Object> checkStatus(@RequestParam String projectKey) {
 
@@ -56,14 +56,14 @@ public class SonarScanController {
         try {
             boolean running = apiService.isRunning(projectKey, new Date(0));
             r = "running=" + running;
-        }catch (Exception e) {
+        } catch (Exception e) {
             log.error("Errore durante il controllo stato SQ", e);
             r = e.getMessage();
             status = HttpStatus.BAD_REQUEST;
         }
         return ResponseEntity.status(status).body(r);
     }
-    
+
     @GetMapping("/fact/{projectId}")
     public ResponseEntity<Object> risultato(@PathVariable Long projectId) {
         try {

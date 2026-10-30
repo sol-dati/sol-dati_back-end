@@ -36,8 +36,8 @@ public class GitLabController {
 
         return ResponseEntity.status(status).body(r);
     }
-    
- // Restituisce i tag del progetto scelto nella select
+
+    // Restituisce i tag del progetto scelto nella select
     @GetMapping("/projects/{projectName}/tags")
     public ResponseEntity<Object> getTags(@PathVariable String projectName) {
 

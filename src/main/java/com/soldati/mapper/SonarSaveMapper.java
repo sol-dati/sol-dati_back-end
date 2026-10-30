@@ -23,11 +23,14 @@ import com.soldati.models.TipoControllo;
 import com.soldati.models.TypeSonar;
 import com.soldati.regole.MetricheDerivate;
 
-public class SonarSaveMapper {
-	
+public final class SonarSaveMapper {
+
+    private SonarSaveMapper() {
+    }
+
     public static List<SonarKpiReq> costruisciKpiDaMetriche(Long idProcesso, SonarResultDTO result, List<Map<String, Object>> catalogoMetriche) {
 
-    	List<SonarKpiReq> lista = new ArrayList<>();
+        List<SonarKpiReq> lista = new ArrayList<>();
         Map<String, Map<String, Object>> metrichePerChiave = new HashMap<>();
 
         for (Map<String, Object> voce : catalogoMetriche) {
@@ -49,8 +52,8 @@ public class SonarSaveMapper {
             Map<String, Object> info = metrichePerChiave.get(metrica.getKey());
 
             if (info != null) {
-                kpiReq.setLanguage(testo(info.get("domain")));
-                kpiReq.setType(testo(info.get("type")));
+                kpiReq.setLanguage(SonarScanMapper.valoreString(info.get("domain")));
+                kpiReq.setType(SonarScanMapper.valoreString(info.get("type")));
             }
             lista.add(kpiReq);
 
@@ -95,25 +98,21 @@ public class SonarSaveMapper {
 
         return lista;
     }
-    
-    private static String testo(Object valore) {
-        return valore == null ? null : valore.toString();
+
+    public static SonarFact createFact(SonarKpiReq req, SonarProcess process, Project project,
+            TipoControllo tipo, SeveritySonar severity, LanguageSonar language, TypeSonar type) {
+
+        SonarFact fact = new SonarFact();
+        fact.setSonarProcess(process);
+        fact.setProject(project);
+        fact.setTipoControllo(tipo);
+        fact.setSeverity(severity);
+        fact.setLanguage(language);
+        fact.setType(type);
+        fact.setSonarKey(req.getSonarKey());
+        fact.setSonarValues(req.getSonarValues());
+        return fact;
     }
-    
-    public static SonarFact createFact(SonarKpiReq req, SonarProcess process, Project project, 
-    		TipoControllo tipo, SeveritySonar severity, LanguageSonar language, TypeSonar type) {
-		
-    	SonarFact fact = new SonarFact();
-		fact.setSonarProcess(process);
-		fact.setProject(project);
-		fact.setTipoControllo(tipo);
-		fact.setSeverity(severity);
-		fact.setLanguage(language);
-		fact.setType(type);
-		fact.setSonarKey(req.getSonarKey());
-		fact.setSonarValues(req.getSonarValues());
-		return fact;
-	}
 
     // collegamenti al catalogo KPI (kpi_compliance o kpi_others), soglie e tipo di inserimento
     public static void completaFact(SonarFact fact, KpiConfigDTO compliance, KpiConfigDTO others, Integer idSoglia, String idTipoInserimento) {
@@ -131,7 +130,7 @@ public class SonarSaveMapper {
             fact.setCalcCompliance(0);
         }
     }
-    
+
     public static SonarProcessDTO buildSonarProcessDTO(SonarProcess process) {
         return SonarProcessDTO.builder()
                 .id(process.getId())
@@ -141,7 +140,7 @@ public class SonarSaveMapper {
                 .processDate(process.getProcessDate())
                 .build();
     }
-    
+
     // righe di sonar_fact -> risultato globale + un gruppo per ogni codice ISO
     public static SonarResultDTO buildRisultato(List<SonarFact> facts) {
 

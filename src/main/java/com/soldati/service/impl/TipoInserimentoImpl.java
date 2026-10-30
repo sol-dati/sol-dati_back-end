@@ -15,13 +15,13 @@ import lombok.RequiredArgsConstructor;
 @Service
 public class TipoInserimentoImpl implements TipoInserimentoService {
 
-	private final TipoInserimentoRepo repo;
+    private final TipoInserimentoRepo repo;
 
-	@Override
-	public TipoInserimentoDTO findByDescrizione(TipoInserimentoReq req) {
+    @Override
+    public TipoInserimentoDTO findByDescrizione(TipoInserimentoReq req) {
 
-		return repo.findByDescrizione(req.getDescrizione())
-				.map(Mapper::buildTipoInserimentoDTO)
-				.orElseThrow(() -> new SoldatiException("Riga mancante in tipo_inserimento: '" + req.getDescrizione() + "'"));
-	}
+        return repo.findByDescrizione(req.getDescrizione())
+                .map(Mapper::buildTipoInserimentoDTO)
+                .orElseThrow(() -> new SoldatiException("Riga mancante in tipo_inserimento: '" + req.getDescrizione() + "'"));
+    }
 }

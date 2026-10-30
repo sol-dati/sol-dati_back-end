@@ -10,11 +10,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Entity
-@Table(name = "type")
 @Getter
 @Setter
 @NoArgsConstructor
+@Entity
+@Table(name = "type")
 public class TypeSonar {
 
     @Id

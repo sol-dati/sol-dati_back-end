@@ -10,79 +10,82 @@ import com.soldati.dto.output.ProjectDTO;
 import com.soldati.dto.output.SogliaDTO;
 import com.soldati.dto.output.StatoDTO;
 import com.soldati.dto.output.TipoInserimentoDTO;
-import com.soldati.models.Soglia;
-import com.soldati.models.TipoInserimento;
 import com.soldati.models.Project;
+import com.soldati.models.Soglia;
 import com.soldati.models.Stato;
+import com.soldati.models.TipoInserimento;
 
-public class Mapper {
+public final class Mapper {
 
-	private static final Pattern RELEASE = Pattern.compile("(?i)(?<![a-z])R(\\d+)");
-	private static final Pattern SPRINT = Pattern.compile("(?i)(?<![a-z])S(\\d+)");
+    private static final Pattern RELEASE = Pattern.compile("(?i)(?<![a-z])R(\\d+)");
+    private static final Pattern SPRINT = Pattern.compile("(?i)(?<![a-z])S(\\d+)");
 
-	private static Long numeroDaTag(Pattern pattern, String tag) {
-		Matcher m = pattern.matcher(tag);
-		return m.find() ? Long.valueOf(m.group(1)) : null;
-	}
+    private Mapper() {
+    }
 
-	public static Project createProject(String projectName, String tag) {
+    private static Long numeroDaTag(Pattern pattern, String tag) {
+        Matcher m = pattern.matcher(tag);
+        return m.find() ? Long.valueOf(m.group(1)) : null;
+    }
 
-		Project project = new Project();
-		project.setProjectName(projectName);
-		project.setTag(tag);
-		project.setDataInserimento(LocalDate.now());
+    public static Project createProject(String projectName, String tag) {
 
-		project.setReleaseNumber(numeroDaTag(RELEASE, tag));
-		project.setSprintNumber(numeroDaTag(SPRINT, tag));
+        Project project = new Project();
+        project.setProjectName(projectName);
+        project.setTag(tag);
+        project.setDataInserimento(LocalDate.now());
 
-		return project;
-	}
-	
-	public static StatoDTO buildStatoDTO(Stato s) {
-		return StatoDTO.builder()
-				.statoId(s.getId())
-				.descrizione(s.getDescrizione())
-				.build();
-	}
-	
-	public static ProjectDTO buildProgettoDTO(Project project) {
-	    Stato stato = project.getStato();
+        project.setReleaseNumber(numeroDaTag(RELEASE, tag));
+        project.setSprintNumber(numeroDaTag(SPRINT, tag));
 
-	    return ProjectDTO.builder()
-	            .id(project.getId())
-	            .projectName(project.getProjectName())
-	            .tag(project.getTag())
-	            .releaseNumber(project.getReleaseNumber())
-	            .sprintNumber(project.getSprintNumber())
-	            .dataInserimento(project.getDataInserimento())
-	            .statoId(stato != null ? stato.getId() : null)
-	            .descrizione(stato != null ? stato.getDescrizione() : null)
-	            .build();
-	}
+        return project;
+    }
 
-	public static SogliaDTO buildSogliaDTO(Soglia s) {
-		return SogliaDTO.builder()
-				.idSoglia(s.getIdSoglia())
-				.descrizione(s.getDescrizione())
-				.build();
-	}
+    public static StatoDTO buildStatoDTO(Stato s) {
+        return StatoDTO.builder()
+                .statoId(s.getId())
+                .descrizione(s.getDescrizione())
+                .build();
+    }
 
-	public static TipoInserimentoDTO buildTipoInserimentoDTO(TipoInserimento t) {
-		return TipoInserimentoDTO.builder()
-				.idTipo(t.getIdTipo())
-				.descrizione(t.getDescrizione())
-				.build();
-	}
+    public static ProjectDTO buildProgettoDTO(Project project) {
+        Stato stato = project.getStato();
 
-	public static SogliaReq createSoglia(String descrizione) {
-		SogliaReq req = new SogliaReq();
-		req.setDescrizione(descrizione);
-		return req;
-	}
+        return ProjectDTO.builder()
+                .id(project.getId())
+                .projectName(project.getProjectName())
+                .tag(project.getTag())
+                .releaseNumber(project.getReleaseNumber())
+                .sprintNumber(project.getSprintNumber())
+                .dataInserimento(project.getDataInserimento())
+                .statoId(stato != null ? stato.getId() : null)
+                .descrizione(stato != null ? stato.getDescrizione() : null)
+                .build();
+    }
 
-	public static TipoInserimentoReq createTipoInserimento(String descrizione) {
-		TipoInserimentoReq req = new TipoInserimentoReq();
-		req.setDescrizione(descrizione);
-		return req;
-	}
+    public static SogliaDTO buildSogliaDTO(Soglia s) {
+        return SogliaDTO.builder()
+                .idSoglia(s.getIdSoglia())
+                .descrizione(s.getDescrizione())
+                .build();
+    }
+
+    public static TipoInserimentoDTO buildTipoInserimentoDTO(TipoInserimento t) {
+        return TipoInserimentoDTO.builder()
+                .idTipo(t.getIdTipo())
+                .descrizione(t.getDescrizione())
+                .build();
+    }
+
+    public static SogliaReq createSoglia(String descrizione) {
+        SogliaReq req = new SogliaReq();
+        req.setDescrizione(descrizione);
+        return req;
+    }
+
+    public static TipoInserimentoReq createTipoInserimento(String descrizione) {
+        TipoInserimentoReq req = new TipoInserimentoReq();
+        req.setDescrizione(descrizione);
+        return req;
+    }
 }

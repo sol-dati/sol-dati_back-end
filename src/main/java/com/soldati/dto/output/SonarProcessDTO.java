@@ -6,15 +6,14 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-@Setter
 @Getter
+@Setter
 @Builder
 public class SonarProcessDTO {
-	
-	private Long id;
-	private String projectName;
-	private Long projectRelease;
-	private Long sprint;
-	private LocalDateTime processDate;
-	
+
+    private Long id;
+    private String projectName;
+    private Long projectRelease;
+    private Long sprint;
+    private LocalDateTime processDate;
 }

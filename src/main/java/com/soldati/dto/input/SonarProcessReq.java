@@ -6,14 +6,13 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-@Setter
 @Getter
+@Setter
 @ToString
 public class SonarProcessReq {
-	
-	private String projectName;
-	private Long projectRelease;
-	private Long sprint;
-	private LocalDateTime processDate;
 
+    private String projectName;
+    private Long projectRelease;
+    private Long sprint;
+    private LocalDateTime processDate;
 }

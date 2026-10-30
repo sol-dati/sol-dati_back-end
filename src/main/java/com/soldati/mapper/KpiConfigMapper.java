@@ -8,6 +8,9 @@ import com.soldati.models.KpiOthers;
 
 public final class KpiConfigMapper {
 
+    private KpiConfigMapper() {
+    }
+
     public static KpiConfigDTO buildKpiCompliance(KpiCompliance k) {
         return buildKpiConfigDTO(k.getKeyKpi(), k.getKpiName(), k.getIsoCode(), k.getTargetMin(), k.getTargetMax(),
                 k.getCalcCompliance(), k.getTypeKpiCod(), k.getSeverity());
@@ -23,8 +26,8 @@ public final class KpiConfigMapper {
         return chiave != null && !chiave.isBlank();
     }
 
-    private static KpiConfigDTO buildKpiConfigDTO(String chiave, String nome, String iso, 
-    		BigDecimal min, BigDecimal max, Boolean calc, String tipo, String severita) {
+    private static KpiConfigDTO buildKpiConfigDTO(String chiave, String nome, String iso,
+            BigDecimal min, BigDecimal max, Boolean calc, String tipo, String severita) {
         return KpiConfigDTO.builder()
                 .chiave(chiave.trim())
                 .nome(nome)

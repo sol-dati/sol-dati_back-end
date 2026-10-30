@@ -4,11 +4,11 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-@Setter
 @Getter
+@Setter
 @Builder
 public class SogliaDTO {
 
-	private Integer idSoglia;
-	private String descrizione;
+    private Integer idSoglia;
+    private String descrizione;
 }

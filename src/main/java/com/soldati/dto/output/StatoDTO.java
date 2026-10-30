@@ -8,7 +8,7 @@ import lombok.Setter;
 @Setter
 @Builder
 public class StatoDTO {
-	
-	private Long statoId;
-	private String descrizione;
+
+    private Long statoId;
+    private String descrizione;
 }

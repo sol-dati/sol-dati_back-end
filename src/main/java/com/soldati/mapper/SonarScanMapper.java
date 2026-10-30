@@ -14,79 +14,78 @@ import com.soldati.dto.input.SonarProcessReq;
 import com.soldati.dto.output.SonarResultDTO;
 import com.soldati.dto.output.SonarRuleDTO;
 
-public class SonarScanMapper {
-	
-	//---------------------------------------//
-	public static SonarResultDTO buildSonarResult(String projectKey, Map<String, Object> resultSonar, List<SonarRuleDTO> rules) {
+public final class SonarScanMapper {
 
-	    Map<String, Object> component = (Map<String, Object>) resultSonar.get("component");
+    private SonarScanMapper() {
+    }
 
-	    if (component == null) {
-	        throw new IllegalStateException("Risposta SonarQube senza campo component. projectKey=" + projectKey);
-	    }
+    @SuppressWarnings("unchecked")
+    public static SonarResultDTO buildSonarResult(String projectKey, Map<String, Object> resultSonar, List<SonarRuleDTO> rules) {
 
-	    Map<String, String> values = new HashMap<>();
+        Map<String, Object> component = (Map<String, Object>) resultSonar.get("component");
 
-	    Object measuresObject = component.get("measures");
+        if (component == null) {
+            throw new IllegalStateException("Risposta SonarQube senza campo component. projectKey=" + projectKey);
+        }
 
-	    if (measuresObject instanceof List<?> measures) {
+        Map<String, String> values = new HashMap<>();
 
-	        for (Object measureObject : measures) {
+        Object measuresObject = component.get("measures");
 
-	            if (!(measureObject instanceof Map<?, ?> measure)) {
-	                continue;
-	            }
+        if (measuresObject instanceof List<?> measures) {
 
-	            String metric = valoreString(measure.get("metric"));
-	            String value = valoreString(measure.get("value"));
+            for (Object measureObject : measures) {
 
-	            if (value == null) {
-	                value = leggiValoreDaPeriodo(measure);
-	            }
+                if (!(measureObject instanceof Map<?, ?> measure)) {
+                    continue;
+                }
 
-	            if (metric != null && value != null) {
-	                values.put(metric, value);
-	            }
-	        }
-	    }
+                String metric = valoreString(measure.get("metric"));
+                String value = valoreString(measure.get("value"));
 
-	    return SonarResultDTO.builder()
-	            .metrics(values)
-	            .rules(rules)
-	            .build();
-	}
-	
-	//---------------------------------------//
-	private static String leggiValoreDaPeriodo(Map<?, ?> measure) {
+                if (value == null) {
+                    value = leggiValoreDaPeriodo(measure);
+                }
 
-	    if (measure.get("period") instanceof Map<?, ?> period) {
-	        return valoreString(period.get("value"));
-	    }
+                if (metric != null && value != null) {
+                    values.put(metric, value);
+                }
+            }
+        }
 
-	    if (measure.get("periods") instanceof List<?> periods && !periods.isEmpty() && periods.get(0) instanceof Map<?, ?> primoPeriodo) {
-	        return valoreString(primoPeriodo.get("value"));
-	    }
+        return SonarResultDTO.builder()
+                .metrics(values)
+                .rules(rules)
+                .build();
+    }
 
-	    return null;
-	}
-	
-	//---------------------------------------//
-	public static String valoreString(Object value) {
+    private static String leggiValoreDaPeriodo(Map<?, ?> measure) {
+
+        if (measure.get("period") instanceof Map<?, ?> period) {
+            return valoreString(period.get("value"));
+        }
+
+        if (measure.get("periods") instanceof List<?> periods && !periods.isEmpty() && periods.get(0) instanceof Map<?, ?> primoPeriodo) {
+            return valoreString(primoPeriodo.get("value"));
+        }
+
+        return null;
+    }
+
+    public static String valoreString(Object value) {
         if (value == null) {
             return null;
         }
         return String.valueOf(value);
     }
-	
-	//---------------------------------------//
-	public static String buildProjectKey(AvviaSqReq req) {
+
+    public static String buildProjectKey(AvviaSqReq req) {
         String chiave = req.getProjectName() + "-R" + req.getRelease();
         return req.getSprint() != null ? chiave + "-S" + req.getSprint() : chiave;
     }
 
-	//---------------------------------------//
-	// riga di sonar_process da salvare: dati della richiesta + istante di avvio dell'analisi
-	public static SonarProcessReq buildSonarProcessReq(AvviaSqReq req, Date momentoAvvio) {
+    // riga di sonar_process da salvare: dati della richiesta + istante di avvio dell'analisi
+    public static SonarProcessReq buildSonarProcessReq(AvviaSqReq req, Date momentoAvvio) {
 
         SonarProcessReq processReq = new SonarProcessReq();
         processReq.setProjectName(req.getProjectName());
@@ -96,37 +95,32 @@ public class SonarScanMapper {
 
         return processReq;
     }
-	
-	//---------------------------------------//
-	public static Map<String, Long> contaViolazioniPerRegola(List<Map<String, Object>> issues) {
 
-	    Map<String, Long> violazioniPerRegola = new LinkedHashMap<>();
+    public static Map<String, Long> contaViolazioniPerRegola(List<Map<String, Object>> issues) {
 
-	    for (Map<String, Object> issue : issues) {
-	        Object rule = issue.get("rule");
-	        if (rule == null) {
-	            continue;
-	        }
-	        violazioniPerRegola.merge(rule.toString(), 1L, Long::sum);
-	    }
+        Map<String, Long> violazioniPerRegola = new LinkedHashMap<>();
 
-	    return violazioniPerRegola;
-	}
+        for (Map<String, Object> issue : issues) {
+            Object rule = issue.get("rule");
+            if (rule == null) {
+                continue;
+            }
+            violazioniPerRegola.merge(rule.toString(), 1L, Long::sum);
+        }
 
-	
-	//---------------------------------------//
-	public static SonarRuleDTO buildRule(String ruleKey, Map<String, Object> dettagli, long numeroViolazioni) {
+        return violazioniPerRegola;
+    }
 
-	    return SonarRuleDTO.builder()
-	            .ruleKey(ruleKey)
-	            .ruleName(valoreString(dettagli.get("name")))
-	            .type(valoreString(dettagli.get("type")))
-	            .severity(valoreString(dettagli.get("severity")))
-	            .description(valoreString(dettagli.get("htmlDesc")))
-	            .issuesCount(numeroViolazioni)
-	            .language(valoreString(dettagli.get("lang")))
-	            .build();
-	}
+    public static SonarRuleDTO buildRule(String ruleKey, Map<String, Object> dettagli, long numeroViolazioni) {
 
-	
+        return SonarRuleDTO.builder()
+                .ruleKey(ruleKey)
+                .ruleName(valoreString(dettagli.get("name")))
+                .type(valoreString(dettagli.get("type")))
+                .severity(valoreString(dettagli.get("severity")))
+                .description(valoreString(dettagli.get("htmlDesc")))
+                .issuesCount(numeroViolazioni)
+                .language(valoreString(dettagli.get("lang")))
+                .build();
+    }
 }

@@ -6,6 +6,5 @@ import org.springframework.stereotype.Repository;
 import com.soldati.models.SonarKpi;
 
 @Repository
-public interface SonarKpiRepo extends JpaRepository<SonarKpi, Long>{
-	
+public interface SonarKpiRepo extends JpaRepository<SonarKpi, Long> {
 }

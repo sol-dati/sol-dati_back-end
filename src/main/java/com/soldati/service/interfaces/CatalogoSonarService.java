@@ -10,16 +10,16 @@ import com.soldati.models.LanguageSonar;
 // allinea le tabelle di catalogo (metriche_sq, language, type, severity) con quanto letto da SonarQube
 public interface CatalogoSonarService {
 
-	// inserisce le metriche nuove, ritorna il numero di nuovi inserimenti
-	int sincronizzaMetriche() throws SoldatiException;
+    // inserisce le metriche nuove, ritorna il numero di nuovi inserimenti
+    int sincronizzaMetriche() throws SoldatiException;
 
-	// inserisce/aggiorna, ritorna il numero di nuovi inserimenti
-	int sincronizzaLanguage() throws SoldatiException;
+    // inserisce/aggiorna, ritorna il numero di nuovi inserimenti
+    int sincronizzaLanguage() throws SoldatiException;
 
-	int sincronizzaType() throws SoldatiException;
+    int sincronizzaType() throws SoldatiException;
 
-	int sincronizzaSeverity() throws SoldatiException;
+    int sincronizzaSeverity() throws SoldatiException;
 
-	// language per chiave; quelli delle righe metrica non ancora presenti vengono inseriti
-	Map<String, LanguageSonar> leggiLanguage(List<SonarKpiReq> righe);
+    // language per chiave; quelli delle righe metrica non ancora presenti vengono inseriti
+    Map<String, LanguageSonar> leggiLanguage(List<SonarKpiReq> righe);
 }

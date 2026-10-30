@@ -16,6 +16,8 @@ public final class MetricheDerivate {
     public static final String CHIAVE_DISTRIBUZIONE_LOC = "ncloc_language_distribution";
     public static final String CHIAVE_LOC_LINGUAGGIO = "ncloc_language";
 
+    private MetricheDerivate() {
+    }
 
     // complessità: complexity / functions
     public static SonarKpiReq complessitaPerFunzione(Long idProcesso, Map<String, String> metriche) {

@@ -5,5 +5,5 @@ import com.soldati.dto.output.SogliaDTO;
 
 public interface SogliaService {
 
-	SogliaDTO findByDescrizione(SogliaReq req);
+    SogliaDTO findByDescrizione(SogliaReq req);
 }

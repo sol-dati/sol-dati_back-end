@@ -4,8 +4,7 @@ import com.soldati.dto.input.AvviaSqReq;
 import com.soldati.dto.output.SonarResultDTO;
 
 public interface SonarScanService {
-	
-	// GitLab -> Maven -> attesa Sonar
-	
-	SonarResultDTO avviaAnalisi(AvviaSqReq req) throws Exception;
+
+    // GitLab -> Maven -> attesa Sonar
+    SonarResultDTO avviaAnalisi(AvviaSqReq req) throws Exception;
 }

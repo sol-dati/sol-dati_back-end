@@ -7,12 +7,12 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-@Setter
 @Getter
+@Setter
 @Builder
 public class IsoCodeDTO {
 
-	private String isoCode;
+    private String isoCode;
     private String descrizione;
     private Map<String, String> metrics;
     private List<SonarRuleDTO> rules;

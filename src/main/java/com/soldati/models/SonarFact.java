@@ -47,7 +47,7 @@ public class SonarFact {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "fk_type")
     private TypeSonar type;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "fk_iso_code")
     private IsoCode iso_code;
@@ -78,5 +78,4 @@ public class SonarFact {
 
     @Column(name = "fk_tipo_inserimento", length = 2)
     private String fkTipoInserimento;
-
 }

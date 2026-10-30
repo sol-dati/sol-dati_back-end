@@ -9,23 +9,22 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
-@Setter
 @Getter
+@Setter
 @Entity
 @Table(name = "tipo_controllo")
 public class TipoControllo {
-	
-	public static final String TIPO_METRICA = "M";
-	public static final String TIPO_RULE = "R";
-	
-	@Id
+
+    public static final String TIPO_METRICA = "M";
+    public static final String TIPO_RULE = "R";
+
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-	
-	@Column(name = "tipo")
-    private String sonarControlType;
- 
-	@Column(name = "descrizione")
-    private String descrizione;
 
+    @Column(name = "tipo")
+    private String sonarControlType;
+
+    @Column(name = "descrizione")
+    private String descrizione;
 }

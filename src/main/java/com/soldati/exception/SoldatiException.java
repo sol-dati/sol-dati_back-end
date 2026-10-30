@@ -1,10 +1,10 @@
 package com.soldati.exception;
 
-public class SoldatiException extends RuntimeException{
+public class SoldatiException extends RuntimeException {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	public SoldatiException(String message) {
-		super(message);
-	}
+    public SoldatiException(String message) {
+        super(message);
+    }
 }

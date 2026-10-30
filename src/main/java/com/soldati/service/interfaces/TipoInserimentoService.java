@@ -5,6 +5,6 @@ import com.soldati.dto.output.TipoInserimentoDTO;
 
 public interface TipoInserimentoService {
 
-	// riga di dim_tipo_inserimento con la descrizione richiesta
-	TipoInserimentoDTO findByDescrizione(TipoInserimentoReq req);
+    // riga di dim_tipo_inserimento con la descrizione richiesta
+    TipoInserimentoDTO findByDescrizione(TipoInserimentoReq req);
 }

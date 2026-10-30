@@ -26,7 +26,7 @@ import com.soldati.service.interfaces.SonarApiService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-//Interroga le API REST di SonarQube 
+// Interroga le API REST di SonarQube
 @Slf4j
 @RequiredArgsConstructor
 @Service
@@ -70,8 +70,8 @@ public class SonarApiServiceImpl implements SonarApiService {
     }
 
     // restituisce lo stato di elaborazione di un progetto
-    
     @Override
+    @SuppressWarnings("unchecked")
     public boolean isRunning(String projectKey, Date startProcess) throws SoldatiException {
 
         String url = sonarHostUrl + "/api/ce/component?component=" + projectKey;
@@ -81,21 +81,19 @@ public class SonarApiServiceImpl implements SonarApiService {
         Map<String, Object> body = chiamaSonar(url, "Risposta vuota da SonarQube per projectKey=" + projectKey);
 
         // current presente, un'elaborazione conclusa o in corso
-        
-        Map<String, Object> current =  (Map<String, Object>) body.get("current");
+        Map<String, Object> current = (Map<String, Object>) body.get("current");
 
         if (current != null) {
             return gestisciElaborazioneCorrente(current, projectKey, startProcess);
         }
 
         // Altrimenti verifica della coda di elaborazione
-
         return gestisciCoda(body, projectKey, startProcess);
     }
 
-	private static boolean gestisciElaborazioneCorrente(Map<String, Object> current, String projectKey, Date startProcess) {
+    private static boolean gestisciElaborazioneCorrente(Map<String, Object> current, String projectKey, Date startProcess) {
 
-		String stato = (String) current.get("status");
+        String stato = (String) current.get("status");
         String dataInizioStr = (String) current.get("startedAt");
 
         Date dataInizio = Date.from(Instant.parse(dataInizioStr));
@@ -103,8 +101,7 @@ public class SonarApiServiceImpl implements SonarApiService {
         if ("SUCCESS".equals(stato)) {
 
             // se troviamo un'elaborazione precedente al nostro avvio, l'analisi non è ancora arrivata
-
-        	return !dataInizio.after(startProcess);
+            return !dataInizio.after(startProcess);
         }
 
         if ("RUNNING".equals(stato)) {
@@ -118,9 +115,10 @@ public class SonarApiServiceImpl implements SonarApiService {
         throw new IllegalStateException("Stato SonarQube non gestito: " + stato + " per projectKey=" + projectKey);
     }
 
+    @SuppressWarnings("unchecked")
     private static boolean gestisciCoda(Map<String, Object> body, String projectKey, Date startProcess) {
 
-    	Object codaS = body.get("queue");
+        Object codaS = body.get("queue");
 
         if (!(codaS instanceof List<?> coda) || coda.isEmpty()) {
 
@@ -146,16 +144,14 @@ public class SonarApiServiceImpl implements SonarApiService {
         return true;
     }
 
-
-    
-    // recupera le metriche principali 
-   
+    // recupera le metriche principali
     @Override
+    @SuppressWarnings("unchecked")
     public Map<String, Object> getResult(String projectKey) throws SoldatiException {
 
         List<String> metriche = metricaSqRepo.findAllMetriche();
 
-        // Numero di metriche per ogni chiamata 
+        // Numero di metriche per ogni chiamata
         final int dimensioneBlocco = 15;
 
         Map<String, Object> componentBase = null;
@@ -198,7 +194,7 @@ public class SonarApiServiceImpl implements SonarApiService {
 
         return risultato;
     }
-    
+
     private Map<String, Object> chiamaMeasures(String projectKey, List<String> blocco) {
 
         String url = UriComponentsBuilder.fromUriString(sonarHostUrl)
@@ -209,11 +205,12 @@ public class SonarApiServiceImpl implements SonarApiService {
 
         return chiamaSonar(url, "Risposta vuota da SonarQube per metriche, projectKey=" + projectKey);
     }
-    
+
     @Override
-	public Map<String, Object> getRuleDetails(String ruleKey) throws SoldatiException {
-    	
-    	if (ruleKey == null || ruleKey.isBlank()) {
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getRuleDetails(String ruleKey) throws SoldatiException {
+
+        if (ruleKey == null || ruleKey.isBlank()) {
             throw new IllegalArgumentException("ruleKey non può essere vuota");
         }
 
@@ -236,259 +233,252 @@ public class SonarApiServiceImpl implements SonarApiService {
         return rule;
     }
 
-	
-	// ritorna le violazioni trovate da SonarQube per un progetto. 
-	
-	@Override
-	public List<Map<String, Object>> getIssues(String projectKey) throws SoldatiException {
+    // ritorna le violazioni trovate da SonarQube per un progetto.
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getIssues(String projectKey) throws SoldatiException {
 
-	    if (projectKey == null || projectKey.isBlank()) {
-	        throw new IllegalArgumentException("projectKey non può essere vuota");
-	    }
+        if (projectKey == null || projectKey.isBlank()) {
+            throw new IllegalArgumentException("projectKey non può essere vuota");
+        }
 
-	    // Quante violazioni per pagina
-	    final int pageSize = 500;
+        // Quante violazioni per pagina
+        final int pageSize = 500;
 
-	    // numero massimo di pagine, per evitare loop
-	    final int maxPagine = 50;
+        // numero massimo di pagine, per evitare loop
+        final int maxPagine = 50;
 
-	    int page = 1;
-
-	    // numero totale delle violazioni 
-	    int total = 0;
-
-	    // lista dove accumuliamo tutte le violazioni
-	    List<Map<String, Object>> allIssues = new ArrayList<>();
-
-	    
-	    //la prima chiamata ci serve comunque per sapere il totale
-	    
-	    do {
-	        String url = UriComponentsBuilder.fromUriString(sonarHostUrl)
-	                .path("/api/issues/search")
-	                .queryParam("componentKeys", projectKey)
-	                .queryParam("p", page)
-	                .queryParam("ps", pageSize)
-	                .toUriString();
-
-	        log.debug("Chiamata API SonarQube ISSUE: projectKey={}, pagina={}", projectKey, page);
-
-	        Map<String, Object> body = chiamaSonar(url, "Risposta vuota da SonarQube per issue, projectKey=" + projectKey);
-
-	        // il numero totale di violazioni 
-	        Object totalObject = body.get("total");
-
-	        if (!(totalObject instanceof Number)) {
-	            throw new IllegalStateException("Campo 'total' assente o non numerico nella risposta issue, projectKey=" + projectKey);
-	        }
-
-	        total = ((Number) totalObject).intValue();
-
-	        // la lista di violazioni della pagina
-	        Object issuesObject = body.get("issues");
-
-	        if (!(issuesObject instanceof List<?> issuesPage)) {
-	            throw new IllegalStateException("Campo 'issues' assente o non valido nella risposta SonarQube, projectKey=" + projectKey);
-	        }
-
-	        if (issuesPage.isEmpty() && allIssues.size() < total) {
-	            throw new IllegalStateException("SonarQube ha restituito una pagina vuota prima di raggiungere il totale atteso, projectKey=" + projectKey);
-	        }
-
-	        // aggiungiamo le violazioni alla lista allIssues
-	        for (Object issue : issuesPage) {
-	            if (issue instanceof Map<?, ?> issueMap) {
-	                allIssues.add((Map<String, Object>) issueMap);
-	            }
-	        }
+        int page = 1;
 
-	        // pagina successiva 
-	        page++;
+        // numero totale delle violazioni
+        int total = 0;
 
-	        if (page > maxPagine) {throw new IllegalStateException("Superato il numero massimo di pagine (" + maxPagine + ") durante il recupero issue, projectKey=" + projectKey);
-	        }
+        // lista dove accumuliamo tutte le violazioni
+        List<Map<String, Object>> allIssues = new ArrayList<>();
+
+        // la prima chiamata ci serve comunque per sapere il totale
+        do {
+            String url = UriComponentsBuilder.fromUriString(sonarHostUrl)
+                    .path("/api/issues/search")
+                    .queryParam("componentKeys", projectKey)
+                    .queryParam("p", page)
+                    .queryParam("ps", pageSize)
+                    .toUriString();
 
-	    // si ripete finché non abbiamo tante violazioni quante il totale 
-	    } while (allIssues.size() < total);
+            log.debug("Chiamata API SonarQube ISSUE: projectKey={}, pagina={}", projectKey, page);
+
+            Map<String, Object> body = chiamaSonar(url, "Risposta vuota da SonarQube per issue, projectKey=" + projectKey);
+
+            // il numero totale di violazioni
+            Object totalObject = body.get("total");
+
+            if (!(totalObject instanceof Number)) {
+                throw new IllegalStateException("Campo 'total' assente o non numerico nella risposta issue, projectKey=" + projectKey);
+            }
 
-	    log.debug("Recuperate {} issue SonarQube per projectKey={}", allIssues.size(), projectKey);
+            total = ((Number) totalObject).intValue();
 
-	    return allIssues;
-	}
-	
-	// Servono per salvare a 0 le regole controllate da Sonar ma senza violazioni.
-	@Override
-	public Set<String> getRegoleAttive(String projectKey) throws SoldatiException {
+            // la lista di violazioni della pagina
+            Object issuesObject = body.get("issues");
 
-	    if (projectKey == null || projectKey.isBlank()) {
-	        throw new IllegalArgumentException("projectKey non può essere vuota");
-	    }
+            if (!(issuesObject instanceof List<?> issuesPage)) {
+                throw new IllegalStateException("Campo 'issues' assente o non valido nella risposta SonarQube, projectKey=" + projectKey);
+            }
 
-	    // 1. quality profile usati dal progetto
-	    String urlProfili = UriComponentsBuilder.fromUriString(sonarHostUrl)
-	            .path("/api/qualityprofiles/search")
-	            .queryParam("project", projectKey)
-	            .toUriString();
+            if (issuesPage.isEmpty() && allIssues.size() < total) {
+                throw new IllegalStateException("SonarQube ha restituito una pagina vuota prima di raggiungere il totale atteso, projectKey=" + projectKey);
+            }
 
-	    Map<String, Object> bodyProfili = chiamaSonar(urlProfili);
+            // aggiungiamo le violazioni alla lista allIssues
+            for (Object issue : issuesPage) {
+                if (issue instanceof Map<?, ?> issueMap) {
+                    allIssues.add((Map<String, Object>) issueMap);
+                }
+            }
 
-	    Set<String> regole = new LinkedHashSet<>();
+            // pagina successiva
+            page++;
 
-	    if (bodyProfili == null || !(bodyProfili.get("profiles") instanceof List<?> profili)) {
-	        log.warn("Nessun quality profile trovato per projectKey={}", projectKey);
-	        return regole;
-	    }
+            if (page > maxPagine) {
+                throw new IllegalStateException("Superato il numero massimo di pagine (" + maxPagine + ") durante il recupero issue, projectKey=" + projectKey);
+            }
 
-	    // 2. regole attive di ogni profilo (paginate, al massimo 500 per pagina)
-	    final int pageSize = 500;
-	    final int maxPagine = 20;
+        // si ripete finché non abbiamo tante violazioni quante il totale
+        } while (allIssues.size() < total);
 
-	    for (Object p : profili) {
-	        if (!(p instanceof Map<?, ?> profilo) || profilo.get("key") == null) {
-	            continue;
-	        }
-	        String chiaveProfilo = profilo.get("key").toString();
-	        int page = 1;
-	        int total;
+        log.debug("Recuperate {} issue SonarQube per projectKey={}", allIssues.size(), projectKey);
 
-	        do {
-	            String url = UriComponentsBuilder.fromUriString(sonarHostUrl)
-	                    .path("/api/rules/search")
-	                    .queryParam("qprofile", chiaveProfilo)
-	                    .queryParam("activation", "true")
-	                    .queryParam("f", "lang")
-	                    .queryParam("ps", pageSize)
-	                    .queryParam("p", page)
-	                    .toUriString();
+        return allIssues;
+    }
 
-	            Map<String, Object> body = chiamaSonar(url);
+    // Servono per salvare a 0 le regole controllate da Sonar ma senza violazioni.
+    @Override
+    public Set<String> getRegoleAttive(String projectKey) throws SoldatiException {
 
-	            if (body == null || !(body.get("rules") instanceof List<?> pagina)) {
-	                break;
-	            }
-	            total = body.get("total") instanceof Number n ? n.intValue() : 0;
+        if (projectKey == null || projectKey.isBlank()) {
+            throw new IllegalArgumentException("projectKey non può essere vuota");
+        }
 
-	            for (Object r : pagina) {
-	                if (r instanceof Map<?, ?> regola && regola.get("key") != null) {
-	                    regole.add(regola.get("key").toString());
-	                }
-	            }
-	            page++;
+        // 1. quality profile usati dal progetto
+        String urlProfili = UriComponentsBuilder.fromUriString(sonarHostUrl)
+                .path("/api/qualityprofiles/search")
+                .queryParam("project", projectKey)
+                .toUriString();
 
-	        } while ((page - 1) * pageSize < total && page <= maxPagine);
-	    }
+        Map<String, Object> bodyProfili = chiamaSonar(urlProfili);
 
-	    log.debug("Regole attive per projectKey={}: {}", projectKey, regole.size());
+        Set<String> regole = new LinkedHashSet<>();
 
-	    return regole;
-	}
+        if (bodyProfili == null || !(bodyProfili.get("profiles") instanceof List<?> profili)) {
+            log.warn("Nessun quality profile trovato per projectKey={}", projectKey);
+            return regole;
+        }
 
-	//elenco delle metriche disponibili
+        // 2. regole attive di ogni profilo (paginate, al massimo 500 per pagina)
+        final int pageSize = 500;
+        final int maxPagine = 20;
 
-	@Override
-	public List<Map<String, Object>> getAvailableMetrics() throws SoldatiException {
+        for (Object p : profili) {
+            if (!(p instanceof Map<?, ?> profilo) || profilo.get("key") == null) {
+                continue;
+            }
+            String chiaveProfilo = profilo.get("key").toString();
+            int page = 1;
+            int total;
 
-	    String url = UriComponentsBuilder.fromUriString(sonarHostUrl)
-	            .path("/api/metrics/search")
-	            .queryParam("ps", 500)
-	            .toUriString();
+            do {
+                String url = UriComponentsBuilder.fromUriString(sonarHostUrl)
+                        .path("/api/rules/search")
+                        .queryParam("qprofile", chiaveProfilo)
+                        .queryParam("activation", "true")
+                        .queryParam("f", "lang")
+                        .queryParam("ps", pageSize)
+                        .queryParam("p", page)
+                        .toUriString();
 
-	    log.debug("Chiamata API SonarQube METRICS, url={}", url);
+                Map<String, Object> body = chiamaSonar(url);
 
-	    Map<String, Object> body = chiamaSonar(url, "Risposta vuota da SonarQube per /api/metrics/search");
+                if (body == null || !(body.get("rules") instanceof List<?> pagina)) {
+                    break;
+                }
+                total = body.get("total") instanceof Number n ? n.intValue() : 0;
 
-	    Object metricsObject = body.get("metrics");
+                for (Object r : pagina) {
+                    if (r instanceof Map<?, ?> regola && regola.get("key") != null) {
+                        regole.add(regola.get("key").toString());
+                    }
+                }
+                page++;
 
-	    if (!(metricsObject instanceof List<?>)) {
-	        throw new IllegalStateException( "Campo 'metrics' assente o non valido nella risposta SonarQube");
-	    }
-	    return (List<Map<String, Object>>) metricsObject;
-	}
+            } while ((page - 1) * pageSize < total && page <= maxPagine);
+        }
 
+        log.debug("Regole attive per projectKey={}: {}", projectKey, regole.size());
 
+        return regole;
+    }
 
-	@Override
-	public List<Map<String, Object>> getAvailableLanguages() throws SoldatiException {
-		
-		String url = UriComponentsBuilder.fromUriString(sonarHostUrl)
-	            .path("/api/languages/list")
-	            .toUriString();
+    // elenco delle metriche disponibili
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getAvailableMetrics() throws SoldatiException {
 
-	    log.debug("Chiamata API SonarQube LANGUAGES, url={}", url);
+        String url = UriComponentsBuilder.fromUriString(sonarHostUrl)
+                .path("/api/metrics/search")
+                .queryParam("ps", 500)
+                .toUriString();
 
-	    Map<String, Object> body = chiamaSonar(url, "Risposta vuota da SonarQube per /api/languages/list");
+        log.debug("Chiamata API SonarQube METRICS, url={}", url);
 
-	    Object languagesObject = body.get("languages");
+        Map<String, Object> body = chiamaSonar(url, "Risposta vuota da SonarQube per /api/metrics/search");
 
-	    if (!(languagesObject instanceof List<?>)) {
-	        throw new IllegalStateException("Campo 'languages' assente o non valido nella risposta SonarQube");
-	    }
+        Object metricsObject = body.get("metrics");
 
-	    return (List<Map<String, Object>>) languagesObject;
-	}
+        if (!(metricsObject instanceof List<?>)) {
+            throw new IllegalStateException("Campo 'metrics' assente o non valido nella risposta SonarQube");
+        }
+        return (List<Map<String, Object>>) metricsObject;
+    }
 
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getAvailableLanguages() throws SoldatiException {
 
+        String url = UriComponentsBuilder.fromUriString(sonarHostUrl)
+                .path("/api/languages/list")
+                .toUriString();
 
-	@Override
-	public List<String> getAvailableTypes() throws SoldatiException {
-		
-		Set<String> tipi = new LinkedHashSet<>(getFacetValues("types"));
+        log.debug("Chiamata API SonarQube LANGUAGES, url={}", url);
 
-	    for (Map<String, Object> metrica : getAvailableMetrics()) {
-	        Object tipo = metrica.get("type");
-	        if (tipo != null && !tipo.toString().isBlank()) {
-	            tipi.add(tipo.toString());
-	        }
-	    }
+        Map<String, Object> body = chiamaSonar(url, "Risposta vuota da SonarQube per /api/languages/list");
 
-	    return new ArrayList<>(tipi);
-	}
+        Object languagesObject = body.get("languages");
 
-	private List<String> getFacetValues(String facet) {
+        if (!(languagesObject instanceof List<?>)) {
+            throw new IllegalStateException("Campo 'languages' assente o non valido nella risposta SonarQube");
+        }
 
-	    String url = UriComponentsBuilder.fromUriString(sonarHostUrl)
-	            .path("/api/rules/search")
-	            .queryParam("facets", facet)
-	            .queryParam("ps", 1)
-	            .toUriString();
+        return (List<Map<String, Object>>) languagesObject;
+    }
 
-	    log.debug("Chiamata API SonarQube RULES facet={}, url={}", facet, url);
+    @Override
+    public List<String> getAvailableTypes() throws SoldatiException {
 
-	    Map<String, Object> body = chiamaSonar(url, "Risposta vuota da SonarQube per /api/rules/search, facet=" + facet);
+        Set<String> tipi = new LinkedHashSet<>(getFacetValues("types"));
 
-	    if (!(body.get("facets") instanceof List<?> facets)) {
-	        throw new IllegalStateException("Campo 'facets' assente nella risposta SonarQube, facet=" + facet);
-	    }
+        for (Map<String, Object> metrica : getAvailableMetrics()) {
+            Object tipo = metrica.get("type");
+            if (tipo != null && !tipo.toString().isBlank()) {
+                tipi.add(tipo.toString());
+            }
+        }
 
-	    List<String> valori = new ArrayList<>();
+        return new ArrayList<>(tipi);
+    }
 
-	    for (Object facetObject : facets) {
-	        if (facetObject instanceof Map<?, ?> facetMap && facet.equals(facetMap.get("property")) 
-	        		&& facetMap.get("values") instanceof List<?> values) {
+    private List<String> getFacetValues(String facet) {
 
-	            for (Object valueObject : values) {
-	                if (valueObject instanceof Map<?, ?> valueMap && valueMap.get("val") != null) {
-	                    valori.add(valueMap.get("val").toString());
-	                }
-	            }
-	        }
-	    }
-	    return valori;
-	}
+        String url = UriComponentsBuilder.fromUriString(sonarHostUrl)
+                .path("/api/rules/search")
+                .queryParam("facets", facet)
+                .queryParam("ps", 1)
+                .toUriString();
 
+        log.debug("Chiamata API SonarQube RULES facet={}, url={}", facet, url);
 
+        Map<String, Object> body = chiamaSonar(url, "Risposta vuota da SonarQube per /api/rules/search, facet=" + facet);
 
-	@Override
-	public List<String> getAvailableSeverities() throws SoldatiException {
-		
-		Set<String> severities = new LinkedHashSet<>(getFacetValues("severities"));
+        if (!(body.get("facets") instanceof List<?> facets)) {
+            throw new IllegalStateException("Campo 'facets' assente nella risposta SonarQube, facet=" + facet);
+        }
 
-	    try {
-	        severities.addAll(getFacetValues("impactSeverities"));
-	    } catch (Exception e) {
-	        log.warn("Facet impactSeverities non disponibile su questa istanza SonarQube: {}", e.getMessage());
-	    }
+        List<String> valori = new ArrayList<>();
 
-	    return new ArrayList<>(severities);
-	}
+        for (Object facetObject : facets) {
+            if (facetObject instanceof Map<?, ?> facetMap && facet.equals(facetMap.get("property"))
+                    && facetMap.get("values") instanceof List<?> values) {
+
+                for (Object valueObject : values) {
+                    if (valueObject instanceof Map<?, ?> valueMap && valueMap.get("val") != null) {
+                        valori.add(valueMap.get("val").toString());
+                    }
+                }
+            }
+        }
+        return valori;
+    }
+
+    @Override
+    public List<String> getAvailableSeverities() throws SoldatiException {
+
+        Set<String> severities = new LinkedHashSet<>(getFacetValues("severities"));
+
+        try {
+            severities.addAll(getFacetValues("impactSeverities"));
+        } catch (Exception e) {
+            log.warn("Facet impactSeverities non disponibile su questa istanza SonarQube: {}", e.getMessage());
+        }
+
+        return new ArrayList<>(severities);
+    }
 }

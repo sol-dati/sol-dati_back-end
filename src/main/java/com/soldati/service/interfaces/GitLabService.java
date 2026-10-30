@@ -8,10 +8,10 @@ import com.soldati.exception.SoldatiException;
 
 public interface GitLabService {
 
-	// Recupera i nomi di tutti i progetti presenti su GitLab
+    // Recupera i nomi di tutti i progetti presenti su GitLab
     List<String> getProjectNames() throws SoldatiException;
-    
- // Recupera i tag di un progetto presente su GitLab
+
+    // Recupera i tag di un progetto presente su GitLab
     List<String> getTags(String projectName) throws SoldatiException;
 
     // Cerca un progetto per nome

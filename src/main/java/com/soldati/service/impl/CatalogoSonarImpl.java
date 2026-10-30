@@ -37,140 +37,140 @@ public class CatalogoSonarImpl implements CatalogoSonarService {
     private final TypeSonarRepo typeRepo;
     private final SeveritySonarRepo severityRepo;
 
-	@Override
-	public int sincronizzaMetriche() throws SoldatiException {
+    @Override
+    public int sincronizzaMetriche() throws SoldatiException {
 
-	    List<Map<String, Object>> metricheSonar = sonarApiService.getAvailableMetrics();
+        List<Map<String, Object>> metricheSonar = sonarApiService.getAvailableMetrics();
 
-	    int inserite = 0;
+        int inserite = 0;
 
-	    for (Map<String, Object> metricaSonar : metricheSonar) {
+        for (Map<String, Object> metricaSonar : metricheSonar) {
 
-	        Object keyObject = metricaSonar.get("key");
+            Object keyObject = metricaSonar.get("key");
 
-	        if (keyObject == null) {
-	            continue;
-	        }
+            if (keyObject == null) {
+                continue;
+            }
 
-	        String key = keyObject.toString();
+            String key = keyObject.toString();
 
-	        if (metricaSqRepo.existsByMetrica(key)) {
-	            continue;
-	        }
+            if (metricaSqRepo.existsByMetrica(key)) {
+                continue;
+            }
 
-	        MetricaSq metrica = new MetricaSq();
-	        metrica.setMetrica(key);
+            MetricaSq metrica = new MetricaSq();
+            metrica.setMetrica(key);
 
-	        metricaSqRepo.save(metrica);
+            metricaSqRepo.save(metrica);
 
-	        inserite++;
-	    }
+            inserite++;
+        }
 
-	    log.info("Sincronizzazione metriche SonarQube completata. Nuove metriche: {}", inserite);
+        log.info("Sincronizzazione metriche SonarQube completata. Nuove metriche: {}", inserite);
 
-	    return inserite;
-	}
+        return inserite;
+    }
 
-	@Override
-	public int sincronizzaLanguage() throws SoldatiException {
+    @Override
+    public int sincronizzaLanguage() throws SoldatiException {
 
-		List<Map<String, Object>> languagesSonar = sonarApiService.getAvailableLanguages();
+        List<Map<String, Object>> languagesSonar = sonarApiService.getAvailableLanguages();
 
-	    int inseriti = 0;
+        int inseriti = 0;
 
-	    for (Map<String, Object> languageSonar : languagesSonar) {
+        for (Map<String, Object> languageSonar : languagesSonar) {
 
-	        Object keyObject = languageSonar.get("key");
+            Object keyObject = languageSonar.get("key");
 
-	        if (keyObject == null || keyObject.toString().isBlank()) {
-	            continue;
-	        }
+            if (keyObject == null || keyObject.toString().isBlank()) {
+                continue;
+            }
 
-	        String key = keyObject.toString();
-	        String name = languageSonar.get("name") != null ? languageSonar.get("name").toString() : null;
+            String key = keyObject.toString();
+            String name = languageSonar.get("name") != null ? languageSonar.get("name").toString() : null;
 
-	        Optional<LanguageSonar> esistente = languageRepo.findByLanguage(key);
+            Optional<LanguageSonar> esistente = languageRepo.findByLanguage(key);
 
-	        if (esistente.isPresent()) {
-	        	LanguageSonar language = esistente.get();
-	            if (name != null && !name.equals(language.getName())) {
-	                language.setName(name);
-	                languageRepo.save(language);
-	            }
-	            continue;
-	        }
+            if (esistente.isPresent()) {
+                LanguageSonar language = esistente.get();
+                if (name != null && !name.equals(language.getName())) {
+                    language.setName(name);
+                    languageRepo.save(language);
+                }
+                continue;
+            }
 
-	        LanguageSonar language = new LanguageSonar();
-	        language.setLanguage(key);
-	        language.setName(name);
-	        languageRepo.save(language);
+            LanguageSonar language = new LanguageSonar();
+            language.setLanguage(key);
+            language.setName(name);
+            languageRepo.save(language);
 
-	        inseriti++;
-	    }
+            inseriti++;
+        }
 
-	    log.info("Sincronizzazione language SonarQube completata. Nuovi linguaggi: {}", inseriti);
+        log.info("Sincronizzazione language SonarQube completata. Nuovi linguaggi: {}", inseriti);
 
-	    return inseriti;
-	}
+        return inseriti;
+    }
 
-	@Override
-	public int sincronizzaType() throws SoldatiException {
-		List<String> typesSonar = sonarApiService.getAvailableTypes();
+    @Override
+    public int sincronizzaType() throws SoldatiException {
+        List<String> typesSonar = sonarApiService.getAvailableTypes();
 
-	    int inseriti = 0;
+        int inseriti = 0;
 
-	    for (String typeSonar : typesSonar) {
+        for (String typeSonar : typesSonar) {
 
-	        if (typeSonar == null || typeSonar.isBlank()) {
-	            continue;
-	        }
+            if (typeSonar == null || typeSonar.isBlank()) {
+                continue;
+            }
 
-	        if (typeRepo.existsByType(typeSonar)) {
-	            continue;
-	        }
+            if (typeRepo.existsByType(typeSonar)) {
+                continue;
+            }
 
-	        TypeSonar type = new TypeSonar();
-	        type.setType(typeSonar);
-	        typeRepo.save(type);
+            TypeSonar type = new TypeSonar();
+            type.setType(typeSonar);
+            typeRepo.save(type);
 
-	        inseriti++;
-	    }
+            inseriti++;
+        }
 
-	    log.info("Sincronizzazione type SonarQube completata. Nuovi type: {}", inseriti);
+        log.info("Sincronizzazione type SonarQube completata. Nuovi type: {}", inseriti);
 
-	    return inseriti;
-	}
+        return inseriti;
+    }
 
-	@Override
-	public int sincronizzaSeverity() throws SoldatiException {
-		List<String> severitiesSonar = sonarApiService.getAvailableSeverities();
+    @Override
+    public int sincronizzaSeverity() throws SoldatiException {
+        List<String> severitiesSonar = sonarApiService.getAvailableSeverities();
 
-	    int inserite = 0;
+        int inserite = 0;
 
-	    for (String severitySonar : severitiesSonar) {
+        for (String severitySonar : severitiesSonar) {
 
-	        if (severitySonar == null || severitySonar.isBlank()) {
-	            continue;
-	        }
+            if (severitySonar == null || severitySonar.isBlank()) {
+                continue;
+            }
 
-	        if (severityRepo.existsBySeverity(severitySonar)) {
-	            continue;
-	        }
+            if (severityRepo.existsBySeverity(severitySonar)) {
+                continue;
+            }
 
-	        SeveritySonar severity = new SeveritySonar();
-	        severity.setSeverity(severitySonar);
-	        severityRepo.save(severity);
+            SeveritySonar severity = new SeveritySonar();
+            severity.setSeverity(severitySonar);
+            severityRepo.save(severity);
 
-	        inserite++;
-	    }
+            inserite++;
+        }
 
-	    log.info("Sincronizzazione severity SonarQube completata. Nuove severity: {}", inserite);
+        log.info("Sincronizzazione severity SonarQube completata. Nuove severity: {}", inserite);
 
-	    return inserite;
-	}
+        return inserite;
+    }
 
-	@Override
-	public Map<String, LanguageSonar> leggiLanguage(List<SonarKpiReq> righe) {
+    @Override
+    public Map<String, LanguageSonar> leggiLanguage(List<SonarKpiReq> righe) {
 
         Map<String, LanguageSonar> languages = languageRepo.findAll().stream()
                 .collect(Collectors.toMap(LanguageSonar::getLanguage, Function.identity()));
@@ -187,5 +187,5 @@ public class CatalogoSonarImpl implements CatalogoSonarService {
         }
 
         return languages;
-	}
+    }
 }

@@ -14,8 +14,8 @@ import lombok.Setter;
 @Entity
 @Table(name = "language")
 public class LanguageSonar {
-	
-	@Id
+
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
@@ -24,5 +24,4 @@ public class LanguageSonar {
 
     @Column(name = "name", length = 100)
     private String name;
-
 }

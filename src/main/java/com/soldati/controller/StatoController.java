@@ -9,16 +9,13 @@ import org.springframework.web.bind.annotation.RestController;
 import com.soldati.service.interfaces.StatoService;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/rest/stato")
 public class StatoController {
 
-	private final StatoService statoS;
-
+    private final StatoService statoS;
 
     @GetMapping("/list")
     public ResponseEntity<Object> list() {
@@ -32,6 +29,4 @@ public class StatoController {
         }
         return ResponseEntity.status(status).body(r);
     }
-
 }
-

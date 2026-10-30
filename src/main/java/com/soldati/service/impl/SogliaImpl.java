@@ -15,13 +15,13 @@ import lombok.RequiredArgsConstructor;
 @Service
 public class SogliaImpl implements SogliaService {
 
-	private final SogliaRepo repo;
+    private final SogliaRepo repo;
 
-	@Override
-	public SogliaDTO findByDescrizione(SogliaReq req) {
+    @Override
+    public SogliaDTO findByDescrizione(SogliaReq req) {
 
-		return repo.findByDescrizione(req.getDescrizione())
-				.map(Mapper::buildSogliaDTO)
-				.orElseThrow(() -> new SoldatiException("Riga mancante in soglie: '" + req.getDescrizione() + "'"));
-	}
+        return repo.findByDescrizione(req.getDescrizione())
+                .map(Mapper::buildSogliaDTO)
+                .orElseThrow(() -> new SoldatiException("Riga mancante in soglie: '" + req.getDescrizione() + "'"));
+    }
 }

@@ -22,8 +22,8 @@ import org.springframework.web.client.RestTemplate;
 import com.soldati.dto.output.GitLabProjectDTO;
 import com.soldati.exception.SoldatiException;
 import com.soldati.mapper.GitLabMapper;
-import com.soldati.util.FileUtils;
 import com.soldati.service.interfaces.GitLabService;
+import com.soldati.util.FileUtils;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 @Service
-public class GitLabImpl implements GitLabService{
+public class GitLabImpl implements GitLabService {
 
     @Value("${gitlab.url}")
     private String gitlabUrl;
@@ -63,13 +63,12 @@ public class GitLabImpl implements GitLabService{
         return response.getBody();
     }
 
-    //Chiamata usata per popolare la select nel frontend.
-    
+    // Chiamata usata per popolare la select nel frontend.
     @Override
     public List<String> getProjectNames() throws SoldatiException {
 
         final int perPage = 100;
-        
+
         final int maxPagine = 20;
 
         int page = 1;
@@ -92,7 +91,7 @@ public class GitLabImpl implements GitLabService{
             }
 
             for (Map<String, Object> project : progettiPagina) {
-                Object name = project.get("name");
+                Object name = project.get("path");
 
                 if (name != null) {
                     // i nomi in minuscolo
@@ -112,9 +111,8 @@ public class GitLabImpl implements GitLabService{
 
         return projectNames;
     }
-    
-    // Recupera i tag di un progetto GitLab.
 
+    // Recupera i tag di un progetto GitLab.
     @Override
     public List<String> getTags(String projectName) throws SoldatiException {
 
@@ -166,9 +164,7 @@ public class GitLabImpl implements GitLabService{
         return tagNames;
     }
 
-    
-    //Cerca un progetto dal nome
-     
+    // Cerca un progetto dal nome
     @Override
     public GitLabProjectDTO findProjectByName(String projectName) throws SoldatiException {
 
@@ -189,7 +185,7 @@ public class GitLabImpl implements GitLabService{
 
         // risultati trovati da GitLab, cerchiamo quello che corrisponde al nome cercato
         for (Map<String, Object> project : progetti) {
-            Object name = project.get("name");
+            Object name = project.get("path");
 
             if (name != null && name.toString().equalsIgnoreCase(projectName)) {
 
@@ -205,8 +201,7 @@ public class GitLabImpl implements GitLabService{
         throw new IllegalStateException("Nessuna corrispondenza esatta trovata per nome: " + projectName);
     }
 
-    //Scarica il codice sorgente di un tag specifico da GitLab,
-
+    // Scarica il codice sorgente di un tag specifico da GitLab
     @Override
     public File fetchSourceForTag(Long projectId, String tag) throws Exception {
 
@@ -218,18 +213,15 @@ public class GitLabImpl implements GitLabService{
         }
 
         // Il nome del tag codificato per l'URL
-        
         String encodedTag = URLEncoder.encode(tag, StandardCharsets.UTF_8);
 
         // ritorna file zip con i sorgenti del tag scelto
-        
         String url = gitlabUrl + "/api/v4/projects/" + projectId
                 + "/repository/archive.zip?sha=" + encodedTag;
 
         log.debug("Download archive GitLab: projectId={}, tag={}", projectId, tag);
 
         // file zip scaricato in byte grezzi
-
         ResponseEntity<byte[]> response = restTemplate.exchange(
                 url,
                 HttpMethod.GET,
@@ -242,16 +234,13 @@ public class GitLabImpl implements GitLabService{
         }
 
         // Creiamo una cartella temporanea
-        
         Path cartellaTemporanea = Files.createTempDirectory(FileUtils.PREFISSO_CARTELLA_TEMPORANEA);
 
         // Salviamo lo zip dentro la cartella
-        
         Path fileZip = cartellaTemporanea.resolve("source.zip");
         Files.write(fileZip, response.getBody());
 
         // Cartella dove verrà estratto lo zip
-        
         Path cartellaEstratta = cartellaTemporanea.resolve("extracted");
         Files.createDirectories(cartellaEstratta);
 

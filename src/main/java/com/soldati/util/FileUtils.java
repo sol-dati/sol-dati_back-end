@@ -23,12 +23,14 @@ public final class FileUtils {
     public static final String PREFISSO_CARTELLA_TEMPORANEA = "sq-source-";
 
     private static final Pattern CREDENZIALI_SONAR = Pattern.compile("\\s*<sonar\\.(password|login)>[^<]*</sonar\\.\\1>");
-    
+
     // (analisi con SonarScanner CLI)
     public static final String CARTELLA_BINARI_VUOTA = ".sonar-binari-vuoti";
 
-    //estrae zip dentro la cartella di destinazione indicata.
+    private FileUtils() {
+    }
 
+    // estrae zip dentro la cartella di destinazione indicata.
     public static void estraiZip(Path fileZip, Path cartellaDestinazione) throws IOException {
 
         // legge lo zip per file/cartelle
@@ -36,7 +38,7 @@ public final class FileUtils {
 
             ZipEntry entry;
 
-            // Scorriamo file/cartelle una alla volta,
+            // Scorriamo file/cartelle una alla volta
             while ((entry = zis.getNextEntry()) != null) {
 
                 // calcola dove sarà estratto, unendo percorso rel. dentro lo zip alla cartella di destinazione
@@ -53,7 +55,6 @@ public final class FileUtils {
                     Files.createDirectories(percorsoFile);
                 } else {
                     // Se l'entry è un file copiamo il contenuto del file dallo zip
-
                     Files.createDirectories(percorsoFile.getParent());
                     Files.copy(zis, percorsoFile, StandardCopyOption.REPLACE_EXISTING);  //se il file esiste lo sovrascrive
                 }
@@ -63,12 +64,11 @@ public final class FileUtils {
             }
         }
     }
-    
-     //Individua la cartella vera del progetto dentro la cartella estratta,
 
+    // Individua la cartella vera del progetto dentro la cartella estratta
     public static File trovaCartellaProgetto(Path cartellaEstratta) throws IOException {
 
-        //tutto quello che si trova al primo livello della cartella estratta
+        // tutto quello che si trova al primo livello della cartella estratta
         try (var elenco = Files.list(cartellaEstratta)) {
 
             List<Path> elementiPrimoLivello = elenco.toList();
@@ -105,12 +105,16 @@ public final class FileUtils {
         }
     }
 
-    // Se manca il plugin maven di Sonar passiamo tutta la cartella come sorgente.
-    public static boolean haSorgentiJava(Path sourceDir) throws IOException {
-        try (Stream<Path> file = Files.walk(sourceDir)) {
-            return file.anyMatch(p -> Files.isDirectory(p) && p.endsWith(Path.of("src", "main", "java")));
-        }
-    }
+     // true se almeno un modulo Maven ha la sua src/main/java:
+	 public static boolean haSorgentiJava(Path sourceDir) throws IOException {
+	     Path srcMainJava = Path.of("src", "main", "java");
+	     try (Stream<Path> file = Files.walk(sourceDir)) {
+	         return file.filter(Files::isDirectory)
+	                 .filter(p -> p.endsWith(srcMainJava))
+	                 .filter(p -> !p.toString().contains("node_modules") && !p.toString().contains("target"))
+	                 .anyMatch(p -> Files.isRegularFile(p.getParent().getParent().getParent().resolve("pom.xml")));
+	     }
+	 }
 
     // cancella la cartella temporanea creata per i sorgenti scaricati
     public static void pulisciCartellaTemporanea(File sourceDir) {
@@ -134,7 +138,7 @@ public final class FileUtils {
 
         try (Stream<Path> tuttiIFile = Files.walk(cartellaRadice)) {
 
-            // Cancelliamo prima i file più "profondi" e poi le cartelle,
+            // Cancelliamo prima i file più "profondi" e poi le cartelle
             tuttiIFile.sorted(Comparator.reverseOrder())
                     .forEach(path -> {
                         try {
@@ -150,8 +154,7 @@ public final class FileUtils {
             log.warn("Errore durante la pulizia della directory temporanea {}: {}", cartellaRadice, e.getMessage());
         }
     }
-    
-    
+
     public static boolean haPomPrincipale(Path sourceDir) {
         return Files.isRegularFile(sourceDir.resolve("pom.xml"));
     }

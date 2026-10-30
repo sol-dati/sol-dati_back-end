@@ -33,15 +33,14 @@ public class SonarKpi {
 
     @Column(name = "language")
     private String language;
-    
+
     @Column(name = "type")
     private String type;
 
     @Column(name = "sonar_values")
     private String sonarValues;
-    
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_tipo_controllo", nullable = false)
     private TipoControllo tipoControllo;
-    
 }

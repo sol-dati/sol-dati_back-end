@@ -10,22 +10,19 @@ import com.soldati.repository.StatoRepo;
 import com.soldati.service.interfaces.StatoService;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @RequiredArgsConstructor
 @Service
-public class StatoImpl implements StatoService{
-	
-	private final StatoRepo repo;
-	
-	@Override
-	public List<StatoDTO> findAll() throws Exception {
-		
-		return repo.findAll()
-				.stream()
-				.map(Mapper::buildStatoDTO)
-                .toList();
-	}
+public class StatoImpl implements StatoService {
 
+    private final StatoRepo repo;
+
+    @Override
+    public List<StatoDTO> findAll() throws Exception {
+
+        return repo.findAll()
+                .stream()
+                .map(Mapper::buildStatoDTO)
+                .toList();
+    }
 }

@@ -10,8 +10,8 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 
-@Setter
 @Getter
+@Setter
 @Entity
 @Table(name = "metriche_sq", uniqueConstraints = {
         @UniqueConstraint(
