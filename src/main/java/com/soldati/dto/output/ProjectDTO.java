@@ -1,7 +1,6 @@
 package com.soldati.dto.output;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -22,5 +21,5 @@ public class ProjectDTO {
     private Long statoId;
     private String descrizione;
 
-    private LocalDateTime dataInvioManuali;
+    private LocalDate dataInvioManuali;
 }

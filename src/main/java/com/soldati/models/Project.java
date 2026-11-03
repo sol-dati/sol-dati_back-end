@@ -1,7 +1,6 @@
 package com.soldati.models;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 import org.hibernate.annotations.DynamicInsert;
 
@@ -42,12 +41,13 @@ public class Project {
 
     @Column(name = "data_inserimento", nullable = false)
     private LocalDate dataInserimento;
+    
+    @Column(name = "data_invio_manuali")
+    private LocalDate dataInvioManuali;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_stato_sq")
     private Stato stato;
 
-    // data dell'ultimo invio dei KPI manuali del tag
-    @Column(name = "data_invio_manuali")
-    private LocalDateTime dataInvioManuali;
+    
 }
