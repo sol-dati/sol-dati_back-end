@@ -17,6 +17,7 @@ public class TipoControllo {
 
     public static final String TIPO_METRICA = "M";
     public static final String TIPO_RULE = "R";
+    public static final String TIPO_MANUALE = "V";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

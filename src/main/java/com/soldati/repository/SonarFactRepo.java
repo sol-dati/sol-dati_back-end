@@ -1,6 +1,7 @@
 package com.soldati.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -23,4 +24,22 @@ public interface SonarFactRepo extends JpaRepository<SonarFact, Long> {
                                        where f2.project.id = :projectId)
             """)
         List<SonarFact> findUltimaAnalisi(@Param("projectId") Long projectId);
+
+    // id dell'ultima analisi che ha righe per il tag
+    @Query("select max(f.sonarProcess.id) from SonarFact f where f.project.id = :projectId")
+    Optional<Long> findUltimaAnalisiId(@Param("projectId") Long projectId);
+
+    // righe di un'analisi con un certo tipo di controllo
+    @Query("select f from SonarFact f where f.sonarProcess.id = :processoId and f.tipoControllo.sonarControlType = :tipo")
+    List<SonarFact> findByProcessoAndTipo(@Param("processoId") Long processoId, @Param("tipo") String tipo);
+
+    // ultima analisi del tag che ha righe di quel tipo di controllo
+    @Query("""
+            select max(f.sonarProcess.id) from SonarFact f
+            where f.project.id = :projectId
+              and f.tipoControllo.sonarControlType = :tipo
+              and f.sonarProcess.id < :processoId
+            """)
+    Optional<Long> findAnalisiPrecedenteConTipo(@Param("projectId") Long projectId, @Param("tipo") String tipo,
+            @Param("processoId") Long processoId);
 }

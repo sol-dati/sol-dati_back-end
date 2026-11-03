@@ -60,6 +60,7 @@ public final class Mapper {
                 .dataInserimento(project.getDataInserimento())
                 .statoId(stato != null ? stato.getId() : null)
                 .descrizione(stato != null ? stato.getDescrizione() : null)
+                .dataInvioManuali(project.getDataInvioManuali())
                 .build();
     }
 

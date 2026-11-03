@@ -19,4 +19,5 @@ public class KpiConfigDTO {
     private boolean calcCompliance;
     private String tipoKpi;
     private String severita;
+    private String descrizione;
 }

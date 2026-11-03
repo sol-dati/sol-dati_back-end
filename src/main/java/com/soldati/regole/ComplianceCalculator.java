@@ -35,6 +35,11 @@ public final class ComplianceCalculator {
         return new BigDecimal(v.replace(',', '.'));
     }
 
+    // true se il testo e' un numero (anche con la virgola decimale)
+    public static boolean numeroValido(String valore) {
+        return valore != null && NUMERO.matcher(valore.trim()).matches();
+    }
+
     // esito del confronto con le soglie
     public static String esitoSoglia(String sonarValues, KpiConfigDTO kpi) {
 

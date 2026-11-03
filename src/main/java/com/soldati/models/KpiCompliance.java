@@ -44,4 +44,7 @@ public class KpiCompliance {
 
     @Column(name = "severity_c", length = 20)
     private String severity;
+
+    @Column(name = "description_c", columnDefinition = "TEXT")
+    private String description;
 }

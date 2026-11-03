@@ -39,6 +39,7 @@ import com.soldati.repository.TipoControlloRepo;
 import com.soldati.repository.TypeSonarRepo;
 import com.soldati.service.interfaces.CatalogoSonarService;
 import com.soldati.service.interfaces.KpiConfigService;
+import com.soldati.service.interfaces.KpiManualiService;
 import com.soldati.service.interfaces.SogliaService;
 import com.soldati.service.interfaces.SonarApiService;
 import com.soldati.service.interfaces.SonarSaveService;
@@ -64,6 +65,7 @@ public class SonarSaveImpl implements SonarSaveService {
     private final KpiConfigService kpiConfigService;
     private final SogliaService sogliaService;
     private final TipoInserimentoService tipoInserimentoService;
+    private final KpiManualiService kpiManualiService;
 
     // righe KPI dell'analisi: metriche + regole
     private List<SonarKpiReq> costruisciRighe(Long idProcesso, SonarResultDTO result) {
@@ -91,6 +93,9 @@ public class SonarSaveImpl implements SonarSaveService {
         SonarProcessDTO processo = salvaProcesso(req);
 
         salvaFact(processo.getId(), req.getProjectName(), tag, result);
+
+        // i KPI manuali inseriti sull'analisi precedente dello stesso tag passano alla nuova
+        kpiManualiService.ricopiaSuNuovaAnalisi(req.getProjectName(), tag, processo.getId());
 
         return processo;
     }

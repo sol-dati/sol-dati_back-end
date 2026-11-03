@@ -13,12 +13,12 @@ public final class KpiConfigMapper {
 
     public static KpiConfigDTO buildKpiCompliance(KpiCompliance k) {
         return buildKpiConfigDTO(k.getKeyKpi(), k.getKpiName(), k.getIsoCode(), k.getTargetMin(), k.getTargetMax(),
-                k.getCalcCompliance(), k.getTypeKpiCod(), k.getSeverity());
+                k.getCalcCompliance(), k.getTypeKpiCod(), k.getSeverity(), k.getDescription());
     }
 
     public static KpiConfigDTO buildKpiOthers(KpiOthers k) {
         return buildKpiConfigDTO(k.getKeyKpi(), k.getKpiName(), k.getIsoCode(), k.getTargetMin(), k.getTargetMax(),
-                k.getCalcCompliance(), k.getTypeKpiCod(), k.getSeverity());
+                k.getCalcCompliance(), k.getTypeKpiCod(), k.getSeverity(), null);
     }
 
     // chiave vuota o nulla: la riga non si puo' collegare a sonar_fact
@@ -27,7 +27,7 @@ public final class KpiConfigMapper {
     }
 
     private static KpiConfigDTO buildKpiConfigDTO(String chiave, String nome, String iso,
-            BigDecimal min, BigDecimal max, Boolean calc, String tipo, String severita) {
+            BigDecimal min, BigDecimal max, Boolean calc, String tipo, String severita, String descrizione) {
         return KpiConfigDTO.builder()
                 .chiave(chiave.trim())
                 .nome(nome)
@@ -37,6 +37,7 @@ public final class KpiConfigMapper {
                 .calcCompliance(Boolean.TRUE.equals(calc))
                 .tipoKpi(tipo)
                 .severita(severita == null || severita.isBlank() ? null : severita.trim().toUpperCase())
+                .descrizione(descrizione)
                 .build();
     }
 }
