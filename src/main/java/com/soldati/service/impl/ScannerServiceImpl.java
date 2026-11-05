@@ -2,6 +2,7 @@ package com.soldati.service.impl;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -14,9 +15,11 @@ import org.apache.maven.shared.invoker.DefaultInvoker;
 import org.apache.maven.shared.invoker.InvocationRequest;
 import org.apache.maven.shared.invoker.InvocationResult;
 import org.apache.maven.shared.invoker.Invoker;
+import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.soldati.exception.SoldatiException;
 import com.soldati.service.interfaces.ScannerService;
 import com.soldati.util.FileUtils;
 
@@ -65,7 +68,7 @@ public class ScannerServiceImpl implements ScannerService {
     private List<String> jdkCompilazione;
 
     @Override
-    public int runSonarAnalisi(File sourceDir, String projectName, String projectKey) throws Exception {
+    public int runSonarAnalisi(File sourceDir, String projectName, String projectKey) throws SoldatiException {
 
         if (sourceDir == null || !sourceDir.exists() || !sourceDir.isDirectory()) {
             throw new IllegalArgumentException("sourceDir non valida: " + sourceDir);
@@ -76,7 +79,12 @@ public class ScannerServiceImpl implements ScannerService {
 
         Path cartella = sourceDir.toPath();
         // Maven serve solo se c'è codice Java da compilare; tutto il resto va con la CLI
-        boolean progettoJavaMaven = FileUtils.haPomPrincipale(cartella) && FileUtils.haSorgentiJava(cartella);
+        boolean progettoJavaMaven;
+        try {
+            progettoJavaMaven = FileUtils.haPomPrincipale(cartella) && FileUtils.haSorgentiJava(cartella);
+        } catch (IOException e) {
+            throw new SoldatiException("Errore lettura sorgenti in " + sourceDir, e);
+        }
 
         int exitCode = progettoJavaMaven
                 ? analisiMaven(sourceDir, projectName, projectKey)
@@ -90,13 +98,16 @@ public class ScannerServiceImpl implements ScannerService {
         return exitCode;
     }
 
-    // progetto Maven: build con la prima JDK che funziona, poi analisi Sonar con la JDK del backend
-    private int analisiMaven(File sourceDir, String projectName, String projectKey) throws Exception {
+    private int analisiMaven(File sourceDir, String projectName, String projectKey) throws SoldatiException {
 
         log.debug("Avvio analisi Maven/Sonar per sourceDir={}, projectKey={}", sourceDir, projectKey);
 
         // i pom con sonar.password/sonar.login fanno fallire l'analisi: li tolgo dalla copia scaricata
-        FileUtils.rimuoviCredenzialiSonar(sourceDir.toPath());
+        try {
+            FileUtils.rimuoviCredenzialiSonar(sourceDir.toPath());
+        } catch (IOException e) {
+            throw new SoldatiException("Errore rimozione credenziali Sonar dai pom in " + sourceDir, e);
+        }
 
         // passo 1: build, provando le JDK in ordine finché una riesce
         File jdkBuild = null;
@@ -132,7 +143,6 @@ public class ScannerServiceImpl implements ScannerService {
         return exitCode;
     }
 
-    // JDK da provare per il build: quelle configurate, in ordine, e per ultima la Java del backend
     private List<File> jdkCandidate() {
 
         List<File> candidate = new ArrayList<>();
@@ -147,8 +157,7 @@ public class ScannerServiceImpl implements ScannerService {
         return candidate;
     }
 
-    // esegue Maven nella cartella del progetto con la JDK e i parametri indicati
-    private int eseguiMaven(File sourceDir, File javaHome, List<String> parametri) throws Exception {
+    private int eseguiMaven(File sourceDir, File javaHome, List<String> parametri) throws SoldatiException {
 
         InvocationRequest request = new DefaultInvocationRequest();
         request.setBaseDirectory(sourceDir);   // cartella dei sorgenti scaricati
@@ -159,7 +168,12 @@ public class ScannerServiceImpl implements ScannerService {
         Invoker invoker = new DefaultInvoker();
         invoker.setMavenHome(new File(mavenHome));
 
-        InvocationResult result = invoker.execute(request);
+        InvocationResult result;
+        try {
+            result = invoker.execute(request);
+        } catch (MavenInvocationException e) {
+            throw new SoldatiException("Errore invocazione Maven in " + sourceDir, e);
+        }
 
         if (result.getExecutionException() != null) {
             throw new IllegalStateException("Errore esecuzione Maven: " + result.getExecutionException(), result.getExecutionException());
@@ -167,8 +181,7 @@ public class ScannerServiceImpl implements ScannerService {
         return result.getExitCode();
     }
 
-    // progetto senza pom.xml o senza codice Java: SonarScanner CLI sulla cartella
-    private int analisiScannerCli(File sourceDir, String projectKey) throws Exception {
+    private int analisiScannerCli(File sourceDir, String projectKey) throws SoldatiException {
 
         log.info("Progetto senza pom.xml o senza codice Java per projectKey={}: analisi con SonarScanner CLI", projectKey);
 
@@ -186,36 +199,43 @@ public class ScannerServiceImpl implements ScannerService {
             }
         }
 
-        // file .java senza classi compilate: Sonar richiede sonar.java.binaries, gli passo una cartella vuota
-        if (FileUtils.haFileJava(sourceDir.toPath())) {
-            FileUtils.creaCartellaBinariVuota(sourceDir.toPath());
-            comando.add("-Dsonar.java.binaries=" + FileUtils.CARTELLA_BINARI_VUOTA);
-        }
-
-        ProcessBuilder pb = new ProcessBuilder(comando);
-        pb.directory(sourceDir);
-        pb.redirectErrorStream(true);
-        pb.environment().put("SONAR_HOST_URL", sonarHostUrl);
-        pb.environment().put("SONAR_TOKEN", sonarToken);
-
-        Process processo = pb.start();
-
-        // output dello scanner nel log dell'applicazione
-        try (BufferedReader output = new BufferedReader(new InputStreamReader(processo.getInputStream(), StandardCharsets.UTF_8))) {
-            String riga;
-            while ((riga = output.readLine()) != null) {
-                log.info("[sonar-scanner] {}", riga);
+        try {
+            // file .java senza classi compilate: Sonar richiede sonar.java.binaries, gli passo una cartella vuota
+            if (FileUtils.haFileJava(sourceDir.toPath())) {
+                FileUtils.creaCartellaBinariVuota(sourceDir.toPath());
+                comando.add("-Dsonar.java.binaries=" + FileUtils.CARTELLA_BINARI_VUOTA);
             }
-        }
 
-        int exitCode = processo.waitFor();
-        if (exitCode != 0) {
-            log.error("SonarScanner CLI terminato con exit code {} per projectKey={}", exitCode, projectKey);
+            ProcessBuilder pb = new ProcessBuilder(comando);
+            pb.directory(sourceDir);
+            pb.redirectErrorStream(true);
+            pb.environment().put("SONAR_HOST_URL", sonarHostUrl);
+            pb.environment().put("SONAR_TOKEN", sonarToken);
+
+            Process processo = pb.start();
+
+            // output dello scanner nel log dell'applicazione
+            try (BufferedReader output = new BufferedReader(new InputStreamReader(processo.getInputStream(), StandardCharsets.UTF_8))) {
+                String riga;
+                while ((riga = output.readLine()) != null) {
+                    log.info("[sonar-scanner] {}", riga);
+                }
+            }
+
+            int exitCode = processo.waitFor();
+            if (exitCode != 0) {
+                log.error("SonarScanner CLI terminato con exit code {} per projectKey={}", exitCode, projectKey);
+            }
+            return exitCode;
+
+        } catch (IOException e) {
+            throw new SoldatiException("Errore esecuzione SonarScanner CLI per projectKey=" + projectKey, e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new SoldatiException("SonarScanner CLI interrotto per projectKey=" + projectKey, e);
         }
-        return exitCode;
     }
 
-    // bin/sonar-scanner.bat su Windows, bin/sonar-scanner sugli altri sistemi
     private File eseguibileScanner() {
 
         boolean windows = System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win");

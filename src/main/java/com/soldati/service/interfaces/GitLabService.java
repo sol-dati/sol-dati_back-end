@@ -18,5 +18,5 @@ public interface GitLabService {
     GitLabProjectDTO findProjectByName(String projectName) throws SoldatiException;
 
     // Scarica ed estrae i sorgenti di un tag specifico di un progetto
-    File fetchSourceForTag(Long projectId, String tag) throws Exception;
+    File fetchSourceForTag(Long projectId, String tag) throws SoldatiException;
 }

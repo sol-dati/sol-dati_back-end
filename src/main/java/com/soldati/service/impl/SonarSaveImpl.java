@@ -2,7 +2,6 @@ package com.soldati.service.impl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -67,24 +66,6 @@ public class SonarSaveImpl implements SonarSaveService {
     private final TipoInserimentoService tipoInserimentoService;
     private final KpiManualiService kpiManualiService;
 
-    // righe KPI dell'analisi: metriche + regole
-    private List<SonarKpiReq> costruisciRighe(Long idProcesso, SonarResultDTO result) {
-
-        List<Map<String, Object>> catalogo = sonarApiService.getAvailableMetrics();
-
-        List<SonarKpiReq> righe = new ArrayList<>();
-        righe.addAll(SonarSaveMapper.costruisciKpiDaMetriche(idProcesso, result, catalogo));
-        righe.addAll(SonarSaveMapper.costruisciKpiDaRule(idProcesso, result));
-
-        return righe;
-    }
-
-    // tabella tipo_controllo per codice
-    private Map<String, TipoControllo> leggiTipiControllo() {
-        return tipoControlloRepo.findAll().stream()
-                .collect(Collectors.toMap(TipoControllo::getSonarControlType, Function.identity()));
-    }
-
     @Override
     @Transactional
     public SonarProcessDTO salvaAnalisi(SonarProcessReq req, String tag, SonarResultDTO result) {
@@ -117,10 +98,27 @@ public class SonarSaveImpl implements SonarSaveService {
 
         return SonarSaveMapper.buildSonarProcessDTO(processoSalvato);
     }
+    
 
-    @Transactional
-    @Override
-    public void salvaFact(Long processId, String projectName, String tag, SonarResultDTO result) {
+    // righe KPI dell'analisi: metriche + regole
+    private List<SonarKpiReq> costruisciRighe(Long idProcesso, SonarResultDTO result) {
+
+        List<Map<String, Object>> catalogo = sonarApiService.getAvailableMetrics();
+
+        List<SonarKpiReq> righe = new ArrayList<>();
+        righe.addAll(SonarSaveMapper.costruisciKpiDaMetriche(idProcesso, result, catalogo));
+        righe.addAll(SonarSaveMapper.costruisciKpiDaRule(idProcesso, result));
+
+        return righe;
+    }
+
+    // tabella tipo_controllo per codice
+    private Map<String, TipoControllo> leggiTipiControllo() {
+        return tipoControlloRepo.findAll().stream()
+                .collect(Collectors.toMap(TipoControllo::getSonarControlType, Function.identity()));
+    }
+
+    private void salvaFact(Long processId, String projectName, String tag, SonarResultDTO result) {
 
         SonarProcess processo = sonarProcessRepo.findById(processId)
                 .orElseThrow(() -> new IllegalStateException("sonar_process non trovato: " + processId));
@@ -224,22 +222,4 @@ public class SonarSaveImpl implements SonarSaveService {
         }
     }
 
-    @Override
-    public SonarResultDTO getUltimoRisultato(Long projectId) {
-
-        List<SonarFact> facts = sonarFactRepo.findUltimaAnalisi(projectId);
-
-        if (facts.isEmpty()
-                || !SonarSaveMapper.eDiOggi(
-                        facts.get(0).getSonarProcess().getProcessDate())) {
-
-            return SonarResultDTO.builder()
-                    .metrics(new LinkedHashMap<>())
-                    .rules(new ArrayList<>())
-                    .iso(new ArrayList<>())
-                    .build();
-        }
-
-        return SonarSaveMapper.buildRisultato(facts);
-    }
 }

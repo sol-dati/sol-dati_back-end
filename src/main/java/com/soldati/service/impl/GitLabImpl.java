@@ -1,6 +1,7 @@
 package com.soldati.service.impl;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -49,7 +50,6 @@ public class GitLabImpl implements GitLabService {
         return new HttpEntity<>(headers);
     }
 
-    // chiamata GET verso GitLab che restituisce una lista di oggetti JSON; il body può essere null
     private List<Map<String, Object>> chiamaGitLab(String url) {
 
         ResponseEntity<List<Map<String, Object>>> response =
@@ -203,7 +203,7 @@ public class GitLabImpl implements GitLabService {
 
     // Scarica il codice sorgente di un tag specifico da GitLab
     @Override
-    public File fetchSourceForTag(Long projectId, String tag) throws Exception {
+    public File fetchSourceForTag(Long projectId, String tag) throws SoldatiException {
 
         if (projectId == null) {
             throw new IllegalArgumentException("projectId non può essere null");
@@ -233,24 +233,29 @@ public class GitLabImpl implements GitLabService {
             throw new IllegalStateException("Archive vuoto o non trovato per projectId=" + projectId + ", tag=" + tag);
         }
 
-        // Creiamo una cartella temporanea
-        Path cartellaTemporanea = Files.createTempDirectory(FileUtils.PREFISSO_CARTELLA_TEMPORANEA);
+        try {
+            // Creiamo una cartella temporanea
+            Path cartellaTemporanea = Files.createTempDirectory(FileUtils.PREFISSO_CARTELLA_TEMPORANEA);
 
-        // Salviamo lo zip dentro la cartella
-        Path fileZip = cartellaTemporanea.resolve("source.zip");
-        Files.write(fileZip, response.getBody());
+            // Salviamo lo zip dentro la cartella
+            Path fileZip = cartellaTemporanea.resolve("source.zip");
+            Files.write(fileZip, response.getBody());
 
-        // Cartella dove verrà estratto lo zip
-        Path cartellaEstratta = cartellaTemporanea.resolve("extracted");
-        Files.createDirectories(cartellaEstratta);
+            // Cartella dove verrà estratto lo zip
+            Path cartellaEstratta = cartellaTemporanea.resolve("extracted");
+            Files.createDirectories(cartellaEstratta);
 
-        FileUtils.estraiZip(fileZip, cartellaEstratta);
+            FileUtils.estraiZip(fileZip, cartellaEstratta);
 
-        // Lo zip contiene una sotto cartella con il progetto, qui troviamo la cartella per passarla a Maven
-        File cartellaProgetto = FileUtils.trovaCartellaProgetto(cartellaEstratta);
+            // Lo zip contiene una sotto cartella con il progetto, qui troviamo la cartella per passarla a Maven
+            File cartellaProgetto = FileUtils.trovaCartellaProgetto(cartellaEstratta);
 
-        log.debug("Sorgenti estratti in: {}", cartellaProgetto.getAbsolutePath());
+            log.debug("Sorgenti estratti in: {}", cartellaProgetto.getAbsolutePath());
 
-        return cartellaProgetto;
+            return cartellaProgetto;
+
+        } catch (IOException e) {
+            throw new SoldatiException("Errore salvataggio/estrazione sorgenti per projectId=" + projectId + ", tag=" + tag, e);
+        }
     }
 }

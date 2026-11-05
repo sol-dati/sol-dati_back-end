@@ -44,4 +44,17 @@ public class ProjectController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+    
+    @GetMapping("/analizzati")
+    public ResponseEntity<Object> analizzati() {
+    	Object r;
+        HttpStatus status = HttpStatus.OK;
+        try {
+            r = projectS.findAnalizzati();
+        } catch (Exception e) {
+            r = e.getMessage();
+            status = HttpStatus.BAD_REQUEST;
+        }
+        return ResponseEntity.status(status).body(r);
+    }
 }

@@ -1,8 +1,10 @@
 package com.soldati.service.impl;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
@@ -13,6 +15,7 @@ import com.soldati.exception.SoldatiException;
 import com.soldati.mapper.Mapper;
 import com.soldati.models.Project;
 import com.soldati.repository.ProjectRepo;
+import com.soldati.service.interfaces.ComplianceService;
 import com.soldati.service.interfaces.GitLabService;
 import com.soldati.service.interfaces.ProjectService;
 
@@ -26,6 +29,7 @@ public class ProjectImpl implements ProjectService {
 
     private final ProjectRepo repo;
     private final GitLabService gitLabService;
+    private final ComplianceService complianceService;
 
     @Override
     public int sincronizzaDaGitLab() throws SoldatiException {
@@ -45,8 +49,7 @@ public class ProjectImpl implements ProjectService {
         return nuove;
     }
 
-    @Override
-    public int create(String projectName) throws SoldatiException {
+    private int create(String projectName) throws SoldatiException {
 
         List<String> tagGitLab = gitLabService.getTags(projectName);
         Set<String> tagPresenti = repo.findTagSetByProjectName(projectName);
@@ -76,6 +79,17 @@ public class ProjectImpl implements ProjectService {
 
         return righe.stream()
                 .map(Mapper::buildProgettoDTO)
+                .toList();
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProjectDTO> findAnalizzati() {
+
+        Map<Long, BigDecimal> compliance = complianceService.compliancePerTag();
+
+        return repo.findAnalizzati().stream()
+                .map(riga -> Mapper.buildProgettoAnalizzatoDTO(riga, compliance))
                 .toList();
     }
 }

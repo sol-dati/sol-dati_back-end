@@ -20,4 +20,13 @@ public interface ProjectRepo extends JpaRepository<Project, Long> {
     Set<String> findTagSetByProjectName(@Param("projectName") String projectName);
 
     Optional<Project> findByProjectNameAndTag(String projectName, String tag);
+    
+ // tag con almeno un'analisi salvata e data dell'ultima, dalla più recente (come l'elenco della dashboard Pentaho)
+    @Query("""
+            select p, max(f.sonarProcess.processDate) from SonarFact f
+            join f.project p
+            group by p
+            order by max(f.sonarProcess.processDate) desc
+            """)
+    List<Object[]> findAnalizzati();
 }

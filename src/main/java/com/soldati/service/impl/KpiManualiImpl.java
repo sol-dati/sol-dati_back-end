@@ -1,6 +1,6 @@
 package com.soldati.service.impl;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -80,7 +80,7 @@ public class KpiManualiImpl implements KpiManualiService {
 
         sostituisciValori(processoId, project, valori);
 
-        project.setDataInvioManuali(LocalDateTime.now());
+        project.setDataInvioManuali(LocalDate.now());
 
         log.info("KPI manuali salvati per {} / {}: {} valori sull'analisi {}", req.getProjectName(), req.getTag(),
                 valori.size(), processoId);
@@ -110,7 +110,7 @@ public class KpiManualiImpl implements KpiManualiService {
                 .orElseThrow(() -> new IllegalStateException("Tag non presente in project: " + projectName + " / " + tag));
     }
 
-    // KPI manuali del catalogo, per chiave
+    
     private Map<String, KpiConfigDTO> catalogoManuali() {
         Map<String, KpiConfigDTO> manuali = new LinkedHashMap<>();
         kpiConfigService.leggiKpiCompliance().forEach((chiave, kpi) -> {
@@ -121,7 +121,6 @@ public class KpiManualiImpl implements KpiManualiService {
         return manuali;
     }
 
-    // cancella i valori manuali dell'analisi e salva quelli nuovi, con soglie e codice ISO del catalogo attuale
     private void sostituisciValori(Long processoId, Project project, Map<String, String> valori) {
 
         sonarFactRepo.deleteAll(sonarFactRepo.findByProcessoAndTipo(processoId, TipoControllo.TIPO_MANUALE));

@@ -7,4 +7,9 @@ public class SoldatiException extends RuntimeException {
     public SoldatiException(String message) {
         super(message);
     }
+
+    // conserva l'eccezione originale (IOException, MavenInvocationException...)
+    public SoldatiException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

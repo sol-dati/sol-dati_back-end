@@ -16,5 +16,4 @@ public class SonarResultDTO {
 
     private List<SonarRuleDTO> rules;
 
-    private List<IsoCodeDTO> iso;
 }

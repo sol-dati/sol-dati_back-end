@@ -1,6 +1,9 @@
 package com.soldati.mapper;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -62,6 +65,14 @@ public final class Mapper {
                 .descrizione(stato != null ? stato.getDescrizione() : null)
                 .dataInvioManuali(project.getDataInvioManuali())
                 .build();
+    }
+    
+    // riga di ProjectRepo.findAnalizzati: [Project, data dell'ultima analisi]; compliance per id project
+    public static ProjectDTO buildProgettoAnalizzatoDTO(Object[] riga, Map<Long, BigDecimal> compliance) {
+        ProjectDTO p = buildProgettoDTO((Project) riga[0]);
+        p.setDataUltimaAnalisi((LocalDateTime) riga[1]);
+        p.setCompliance(compliance.get(p.getId()));
+        return p;
     }
 
     public static SogliaDTO buildSogliaDTO(Soglia s) {

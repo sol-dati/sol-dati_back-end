@@ -5,7 +5,6 @@ import java.util.Date;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,7 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.soldati.dto.input.AvviaSqReq;
 import com.soldati.service.interfaces.SonarApiService;
-import com.soldati.service.interfaces.SonarSaveService;
 import com.soldati.service.interfaces.SonarScanService;
 
 import lombok.RequiredArgsConstructor;
@@ -28,7 +26,6 @@ public class SonarScanController {
 
     private final SonarScanService sonarService;
     private final SonarApiService apiService;
-    private final SonarSaveService sonarSaveService;
 
     @PostMapping("/avvia")
     public ResponseEntity<Object> avviaAnalisi(@RequestBody AvviaSqReq request) {
@@ -62,14 +59,5 @@ public class SonarScanController {
             status = HttpStatus.BAD_REQUEST;
         }
         return ResponseEntity.status(status).body(r);
-    }
-
-    @GetMapping("/fact/{projectId}")
-    public ResponseEntity<Object> risultato(@PathVariable Long projectId) {
-        try {
-            return ResponseEntity.ok(sonarSaveService.getUltimoRisultato(projectId));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
     }
 }

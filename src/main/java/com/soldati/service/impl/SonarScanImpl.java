@@ -18,6 +18,7 @@ import com.soldati.dto.output.KpiConfigDTO;
 import com.soldati.dto.output.SonarProcessDTO;
 import com.soldati.dto.output.SonarResultDTO;
 import com.soldati.dto.output.SonarRuleDTO;
+import com.soldati.exception.SoldatiException;
 import com.soldati.mapper.SonarScanMapper;
 import com.soldati.service.interfaces.CatalogoSonarService;
 import com.soldati.service.interfaces.GitLabService;
@@ -36,10 +37,10 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class SonarScanImpl implements SonarScanService {
 
-    // Ogni quanti secondi controllare se SonarQube ha finito
+    // ogni quanti secondi controllare se SonarQube ha finito
     private static final long POLL_INTERVAL_SECONDS = 10;
 
-    // Numero massimo di controlli
+    // numero massimo di controlli (30 x 10s = 5 minuti)
     private static final long MAX_POLL_ATTEMPTS = 30;
 
     private final GitLabService gitLabService;
@@ -50,73 +51,50 @@ public class SonarScanImpl implements SonarScanService {
     private final CatalogoSonarService catalogoSonarService;
 
     @Override
-    public SonarResultDTO avviaAnalisi(AvviaSqReq req) throws Exception {
+    public SonarResultDTO avviaAnalisi(AvviaSqReq req) throws SoldatiException {
 
-        if (req.getProjectName() == null || req.getProjectName().isBlank()) {
-            throw new IllegalArgumentException("projectName non può essere vuoto");
-        }
-        if (req.getTag() == null || req.getTag().isBlank()) {
-            throw new IllegalArgumentException("tag non può essere vuoto");
-        }
-
-        if (req.getRelease() == null) {
-            throw new IllegalArgumentException("release obbligatoria");
-        }
+        validaRichiesta(req);
 
         log.debug("Avvio analisi SQ: projectName={}, release={}, sprint={}, tag={}",
                 req.getProjectName(), req.getRelease(), req.getSprint(), req.getTag());
 
-        // Passo 1: troviamo il progetto su GitLab
+        // passo 1: progetto su GitLab
         GitLabProjectDTO gitLabProject = gitLabService.findProjectByName(req.getProjectName());
 
-        // Passo 2: scarichiamo i sorgenti del tag scelto
+        // passo 2: sorgenti del tag scelto in una cartella temporanea
         File sourceDir = gitLabService.fetchSourceForTag(gitLabProject.getId(), req.getTag());
 
-        // richiama metodo che crea la chiave identificativa del progetto su SonarQube
+        // chiave identificativa del progetto su SonarQube
         String projectKey = SonarScanMapper.buildProjectKey(req);
 
         try {
-            // istante in cui si avvia l'analisi
             Date momentoAvvio = new Date();
 
-            // Passo 3: lanciamo maven, che a sua volta invia l'analisi a SonarQube
+            // passo 3: analisi (Maven o SonarScanner CLI) inviata a SonarQube
             scannerService.runSonarAnalisi(sourceDir, req.getProjectName(), projectKey);
 
-            log.debug("Maven/Sonar completato, in attesa che SonarQube finisca di elaborare projectKey={}", projectKey);
-
-            // Passo 4: aspettiamo che SonarQube finisca
-            waitCompletamentoSonar(projectKey, momentoAvvio);
-
+            // passo 4: attesa dell'elaborazione lato SonarQube
+            attendiCompletamentoSonar(projectKey, momentoAvvio);
             log.debug("Elaborazione SonarQube completata per projectKey={}", projectKey);
 
-            // Passo 5: allineiamo le tabelle di catalogo con SonarQube
+            // passo 5: tabelle di catalogo allineate con SonarQube
             catalogoSonarService.sincronizzaMetriche();
             catalogoSonarService.sincronizzaLanguage();
             catalogoSonarService.sincronizzaType();
             catalogoSonarService.sincronizzaSeverity();
 
-            // Passo 6: recuperiamo i risultati
+            // passo 6: metriche
             Map<String, Object> resultSonar = sonarApiService.getResult(projectKey);
 
-            log.debug("Metriche SonarQube recuperate per projectKey={}", projectKey);
-
-            // Passo 7: recuperiamo tutte le issue
-            List<Map<String, Object>> issues = sonarApiService.getIssues(projectKey);
-
-            // Passo 7b: costruiamo la lista delle rules (una sola volta per regola distinta)
-            List<SonarRuleDTO> rules = costruisciRules(projectKey, issues);
-
-            // Passo 7c: regole del piano qualità (kpi_compliance) attive su Sonar ma senza violazioni,
-            // salvate con valore 0 servono per il calcolo della compliance
+            // passo 7: regole violate + regole del piano qualità senza violazioni (valore 0, servono alla compliance)
+            List<SonarRuleDTO> rules = costruisciRules(projectKey, sonarApiService.getIssues(projectKey));
             rules.addAll(costruisciRegoleSenzaViolazioni(projectKey, rules));
 
             SonarResultDTO result = SonarScanMapper.buildSonarResult(projectKey, resultSonar, rules);
 
-            // Passo 8: salviamo i risultati sul DB
+            // passo 8: salvataggio su DB
             SonarProcessReq processReq = SonarScanMapper.buildSonarProcessReq(req, momentoAvvio);
-
             SonarProcessDTO processoSalvato = sonarSaveService.salvaAnalisi(processReq, req.getTag(), result);
-
             log.debug("Risultati salvati su DB: sonar_process id={}", processoSalvato.getId());
 
             return result;
@@ -126,43 +104,63 @@ public class SonarScanImpl implements SonarScanService {
         }
     }
 
-    // Controlla ripetutamente se SonarQube ha finito di elaborare
-    private void waitCompletamentoSonar(String projectKey, Date momentoAvvio) throws Exception {
+    // campi obbligatori della richiesta
+    private void validaRichiesta(AvviaSqReq req) {
+        if (req.getProjectName() == null || req.getProjectName().isBlank()) {
+            throw new IllegalArgumentException("projectName non può essere vuoto");
+        }
+        if (req.getTag() == null || req.getTag().isBlank()) {
+            throw new IllegalArgumentException("tag non può essere vuoto");
+        }
+        if (req.getRelease() == null) {
+            throw new IllegalArgumentException("release obbligatoria");
+        }
+    }
+
+    // controlla a intervalli regolari se SonarQube ha finito di elaborare l'analisi
+    private void attendiCompletamentoSonar(String projectKey, Date momentoAvvio) {
 
         for (int tentativo = 1; tentativo <= MAX_POLL_ATTEMPTS; tentativo++) {
 
-            // Aspettiamo qualche secondo prima di ogni controllo
-            TimeUnit.SECONDS.sleep(POLL_INTERVAL_SECONDS);
+            pausa(projectKey);
 
             boolean ancoraInCorso = sonarApiService.isRunning(projectKey, momentoAvvio);
-
-            log.debug("Tentativo #{} per projectKey={}: sonar qube in elaborazione={}", tentativo, projectKey, ancoraInCorso);
+            log.debug("Tentativo #{} per projectKey={}: in elaborazione={}", tentativo, projectKey, ancoraInCorso);
 
             if (!ancoraInCorso) {
                 return;
             }
         }
 
-        // abbiamo superato il numero massimo di tentativi
-        throw new IllegalStateException("Timeout: SonarQube non ha completato l'elaborazione entro il limite atteso per projectKey=" + projectKey);
+        throw new SoldatiException("Timeout: SonarQube non ha completato l'elaborazione per projectKey=" + projectKey);
     }
 
-    private List<SonarRuleDTO> costruisciRules(String projectKey, List<Map<String, Object>> issues) throws Exception {
+    // attesa tra un controllo e l'altro; se il thread viene interrotto si ripristina il flag e si interrompe l'analisi
+    private void pausa(String projectKey) {
+        try {
+            TimeUnit.SECONDS.sleep(POLL_INTERVAL_SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new SoldatiException("Attesa di SonarQube interrotta per projectKey=" + projectKey, e);
+        }
+    }
+
+    // una SonarRuleDTO per ogni regola violata, con il numero di violazioni
+    private List<SonarRuleDTO> costruisciRules(String projectKey, List<Map<String, Object>> issues) {
 
         Map<String, Long> violazioniPerRegola = SonarScanMapper.contaViolazioniPerRegola(issues);
 
         List<SonarRuleDTO> rules = new ArrayList<>();
-
         for (Map.Entry<String, Long> voce : violazioniPerRegola.entrySet()) {
             Map<String, Object> dettagli = sonarApiService.getRuleDetails(voce.getKey());
             rules.add(SonarScanMapper.buildRule(voce.getKey(), dettagli, voce.getValue()));
         }
 
         log.debug("Rules costruite per projectKey={}: {} regole distinte", projectKey, rules.size());
-
         return rules;
     }
 
+    // regole del catalogo kpi_compliance attive su SonarQube ma senza violazioni
     private List<SonarRuleDTO> costruisciRegoleSenzaViolazioni(String projectKey, List<SonarRuleDTO> violate) {
 
         List<SonarRuleDTO> regole = new ArrayList<>();
@@ -175,24 +173,18 @@ public class SonarScanImpl implements SonarScanService {
             Set<String> attive = sonarApiService.getRegoleAttive(projectKey);
 
             for (KpiConfigDTO kpi : kpiConfigService.leggiKpiCompliance().values()) {
-
                 String chiave = kpi.getChiave();
-
-                // tutte le regole del catalogo (anche calc_compliance_c = 0, che vengono solo mostrate)
                 if (giaPresenti.contains(chiave) || !attive.contains(chiave)) {
                     continue;
                 }
-
-                Map<String, Object> dettagli = sonarApiService.getRuleDetails(chiave);
-                regole.add(SonarScanMapper.buildRule(chiave, dettagli, 0));
+                regole.add(SonarScanMapper.buildRule(chiave, sonarApiService.getRuleDetails(chiave), 0));
             }
 
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             log.warn("Regole senza violazioni non recuperate per projectKey={}: {}", projectKey, e.getMessage());
         }
 
         log.debug("Regole del catalogo senza violazioni per projectKey={}: {}", projectKey, regole.size());
-
         return regole;
     }
 }

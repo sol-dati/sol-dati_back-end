@@ -1,9 +1,13 @@
 package com.soldati.regole;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import com.soldati.dto.output.KpiConfigDTO;
+import com.soldati.models.SonarFact;
 
 // regole del piano qualità: confronto con le soglie, tipo di inserimento, codice ISO
 public final class ComplianceCalculator {
@@ -13,13 +17,13 @@ public final class ComplianceCalculator {
     public static final String SENZA_SOGLIE = "NP";
     public static final String NON_CONCORRE = "Non calcolare";
 
+    public static final int CARATTERISTICHE_ISO_25010 = 8;
+    public static final String ISO_EXTRA = "Extra ISO";
+
     public static final String INSERIMENTO_MANUALE = "Manuali";
     public static final String INSERIMENTO_AUTOMATICO = "Automatico";
 
     private static final Pattern NUMERO = Pattern.compile("^-?[0-9]+([.,][0-9]+)?$");
-
-    private ComplianceCalculator() {
-    }
 
     // sonar_values -> numero (per il confronto con le soglie)
     public static BigDecimal valoreNumerico(String valore) {
@@ -67,5 +71,42 @@ public final class ComplianceCalculator {
 
     public static String codiceIso(KpiConfigDTO compliance, KpiConfigDTO others) {
         return compliance != null ? compliance.getIsoCode() : others.getIsoCode();
+    }
+    
+    // kpi entro soglia / kpi che concorrono alla compliance
+    public static BigDecimal quota(long conteggio, long divisore) {
+        if (divisore == 0) {
+            return BigDecimal.ZERO;
+        }
+        return BigDecimal.valueOf(conteggio).divide(BigDecimal.valueOf(divisore), 4, RoundingMode.HALF_UP);
+    }
+    
+    // KPI del catalogo che concorrono alla compliance in una categoria ISO
+    public static long kpiCompliance(Map<String, KpiConfigDTO> catalogo, String isoCode) {
+        return catalogo.values().stream()
+                .filter(k -> isoCode.equals(k.getIsoCode()) && k.isCalcCompliance())
+                .count();
+    }
+    
+    // righe della categoria ISO che concorrono alla compliance con l'esito indicato (descrizione della tabella soglie)
+    public static long contaEsito(List<SonarFact> righe, Map<String, KpiConfigDTO> catalogo,
+            Map<Integer, String> soglie, String isoCode, String esito) {
+        return righe.stream()
+                .filter(f -> f.getFkKpiCompliance() != null && Integer.valueOf(1).equals(f.getCalcCompliance()))
+                .filter(f -> {
+                    KpiConfigDTO k = catalogo.get(f.getFkKpiCompliance());
+                    return k != null && isoCode.equals(k.getIsoCode());
+                })
+                .filter(f -> esito.equals(soglie.get(f.getFkSoglia())))
+                .count();
+    }
+
+    public static BigDecimal compliance(List<SonarFact> righe, Map<String, KpiConfigDTO> catalogo,
+            Map<Integer, String> soglie, List<String> categorie) {
+        BigDecimal somma = BigDecimal.ZERO;
+        for (String isoCode : categorie) {
+            somma = somma.add(quota(contaEsito(righe, catalogo, soglie, isoCode, ENTRO_SOGLIA), kpiCompliance(catalogo, isoCode)));
+        }
+        return somma.divide(BigDecimal.valueOf(CARATTERISTICHE_ISO_25010), 4, RoundingMode.HALF_UP);
     }
 }

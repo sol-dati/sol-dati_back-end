@@ -1,6 +1,8 @@
 package com.soldati.dto.output;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -22,4 +24,7 @@ public class ProjectDTO {
     private String descrizione;
 
     private LocalDate dataInvioManuali;
+    private LocalDateTime dataUltimaAnalisi;
+    
+    private BigDecimal compliance;
 }

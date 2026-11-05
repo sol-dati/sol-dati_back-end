@@ -1,15 +1,11 @@
 package com.soldati.mapper;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.soldati.dto.input.SonarKpiReq;
-import com.soldati.dto.output.IsoCodeDTO;
 import com.soldati.dto.output.KpiConfigDTO;
 import com.soldati.dto.output.SonarProcessDTO;
 import com.soldati.dto.output.SonarResultDTO;
@@ -141,68 +137,4 @@ public final class SonarSaveMapper {
                 .build();
     }
 
-    // righe di sonar_fact -> risultato globale + un gruppo per ogni codice ISO
-    public static SonarResultDTO buildRisultato(List<SonarFact> facts) {
-
-        Map<String, String> metrics = new LinkedHashMap<>();
-        List<SonarRuleDTO> rules = new ArrayList<>();
-
-        // Un gruppo per ogni codice ISO
-        Map<String, IsoCodeDTO> gruppi = new LinkedHashMap<>();
-
-        for (SonarFact f : facts) {
-
-            String codice = f.getIso_code() != null ? f.getIso_code().getIso_code() : "X";
-
-            IsoCodeDTO gruppo = gruppi.computeIfAbsent(codice,
-                    c -> IsoCodeDTO.builder()
-                            .isoCode(c)
-                            .metrics(new LinkedHashMap<>())
-                            .rules(new ArrayList<>())
-                            .build()
-            );
-
-            if (TipoControllo.TIPO_METRICA.equals(
-                    f.getTipoControllo().getSonarControlType())) {
-
-                String valore = f.getSonarValues();
-
-                // le LOC per linguaggio hanno tutte la stessa chiave: aggiungo il linguaggio (ncloc_language.java)
-                String chiave = MetricheDerivate.CHIAVE_LOC_LINGUAGGIO.equals(f.getSonarKey()) && f.getLanguage() != null
-                        ? f.getSonarKey() + "." + f.getLanguage().getLanguage() : f.getSonarKey();
-
-                // Risultato globale
-                metrics.put(chiave, valore);
-
-                // Risultato della categoria ISO
-                gruppo.getMetrics().put(chiave, valore);
-
-            } else {
-
-                SonarRuleDTO regola = SonarRuleDTO.builder()
-                        .ruleKey(f.getSonarKey())
-                        .type(f.getType() != null ? f.getType().getType() : null)
-                        .severity(f.getSeverity() != null ? f.getSeverity().getSeverity() : null)
-                        .language(f.getLanguage() != null ? f.getLanguage().getLanguage() : null)
-                        .issuesCount(f.getSonarValues() != null ? Long.parseLong(f.getSonarValues()) : 0L)
-                        .build();
-
-                // Risultato globale
-                rules.add(regola);
-
-                // Risultato della categoria ISO
-                gruppo.getRules().add(regola);
-            }
-        }
-
-        return SonarResultDTO.builder()
-                .metrics(metrics)
-                .rules(rules)
-                .iso(new ArrayList<>(gruppi.values()))
-                .build();
-    }
-
-    public static boolean eDiOggi(LocalDateTime data) {
-        return data != null && data.toLocalDate().equals(LocalDate.now());
-    }
 }

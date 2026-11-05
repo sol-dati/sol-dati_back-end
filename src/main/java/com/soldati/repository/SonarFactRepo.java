@@ -25,6 +25,15 @@ public interface SonarFactRepo extends JpaRepository<SonarFact, Long> {
             """)
         List<SonarFact> findUltimaAnalisi(@Param("projectId") Long projectId);
 
+    // righe collegate al catalogo kpi_compliance dell'ultima analisi di ogni tag (calcolo della compliance)
+    @Query("""
+            select f from SonarFact f
+            where f.fkKpiCompliance is not null
+              and f.sonarProcess.id = (select max(f2.sonarProcess.id) from SonarFact f2
+                                       where f2.project.id = f.project.id)
+            """)
+    List<SonarFact> findUltimeAnalisiCompliance();
+
     // id dell'ultima analisi che ha righe per il tag
     @Query("select max(f.sonarProcess.id) from SonarFact f where f.project.id = :projectId")
     Optional<Long> findUltimaAnalisiId(@Param("projectId") Long projectId);
