@@ -5,24 +5,24 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.soldati.dto.input.AvviaSqReq;
 import com.soldati.dto.input.SonarProcessReq;
 import com.soldati.dto.output.GitLabProjectDTO;
-import com.soldati.dto.output.KpiConfigDTO;
 import com.soldati.dto.output.SonarProcessDTO;
 import com.soldati.dto.output.SonarResultDTO;
 import com.soldati.dto.output.SonarRuleDTO;
+import com.soldati.enums.StatoAnalisi;
 import com.soldati.exception.SoldatiException;
 import com.soldati.mapper.SonarScanMapper;
 import com.soldati.service.interfaces.CatalogoSonarService;
 import com.soldati.service.interfaces.GitLabService;
 import com.soldati.service.interfaces.KpiConfigService;
+import com.soldati.service.interfaces.ProjectService;
 import com.soldati.service.interfaces.ScannerService;
 import com.soldati.service.interfaces.SonarApiService;
 import com.soldati.service.interfaces.SonarSaveService;
@@ -36,12 +36,12 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Service
 public class SonarScanImpl implements SonarScanService {
+	
+    @Value("${sonar.attesa.intervallo.secondi:10}")
+    private long intervalloSecondi;
 
-    // ogni quanti secondi controllare se SonarQube ha finito
-    private static final long POLL_INTERVAL_SECONDS = 10;
-
-    // numero massimo di controlli (30 x 10s = 5 minuti)
-    private static final long MAX_POLL_ATTEMPTS = 30;
+    @Value("${sonar.attesa.tentativi:30}")
+    private int tentativi;
 
     private final GitLabService gitLabService;
     private final ScannerService scannerService;
@@ -49,11 +49,33 @@ public class SonarScanImpl implements SonarScanService {
     private final SonarSaveService sonarSaveService;
     private final KpiConfigService kpiConfigService;
     private final CatalogoSonarService catalogoSonarService;
+    private final ProjectService projectService;
 
     @Override
     public SonarResultDTO avviaAnalisi(AvviaSqReq req) throws SoldatiException {
 
-        validaRichiesta(req);
+        SonarScanMapper.validaRichiesta(req);
+
+        // stato del tag: in corso -> elaborato / errore 
+        projectService.aggiornaStato(req.getProjectName(), req.getTag(), StatoAnalisi.IN_CORSO);
+
+        boolean completata = false;
+        try {
+            SonarResultDTO result = eseguiAnalisi(req);
+            projectService.aggiornaStato(req.getProjectName(), req.getTag(), StatoAnalisi.ELABORATO);
+            completata = true;
+            return result;
+
+        } finally {
+        	//il tag non resta "In corso"
+            if (!completata) {
+                segnaErrore(req);
+            }
+        }
+    }
+
+    // GitLab -> analisi -> attesa SonarQube -> cataloghi -> risultati -> salvataggio su DB
+    private SonarResultDTO eseguiAnalisi(AvviaSqReq req) {
 
         log.debug("Avvio analisi SQ: projectName={}, release={}, sprint={}, tag={}",
                 req.getProjectName(), req.getRelease(), req.getSprint(), req.getTag());
@@ -104,23 +126,19 @@ public class SonarScanImpl implements SonarScanService {
         }
     }
 
-    // campi obbligatori della richiesta
-    private void validaRichiesta(AvviaSqReq req) {
-        if (req.getProjectName() == null || req.getProjectName().isBlank()) {
-            throw new IllegalArgumentException("projectName non può essere vuoto");
-        }
-        if (req.getTag() == null || req.getTag().isBlank()) {
-            throw new IllegalArgumentException("tag non può essere vuoto");
-        }
-        if (req.getRelease() == null) {
-            throw new IllegalArgumentException("release obbligatoria");
+    // stato errore sul tag
+    private void segnaErrore(AvviaSqReq req) {
+        try {
+            projectService.aggiornaStato(req.getProjectName(), req.getTag(), StatoAnalisi.ERRORE);
+        } catch (RuntimeException ex) {
+            log.warn("Stato di errore non salvato per {} / {}: {}", req.getProjectName(), req.getTag(), ex.getMessage());
         }
     }
 
     // controlla a intervalli regolari se SonarQube ha finito di elaborare l'analisi
     private void attendiCompletamentoSonar(String projectKey, Date momentoAvvio) {
 
-        for (int tentativo = 1; tentativo <= MAX_POLL_ATTEMPTS; tentativo++) {
+        for (int tentativo = 1; tentativo <= tentativi; tentativo++) {
 
             pausa(projectKey);
 
@@ -135,10 +153,10 @@ public class SonarScanImpl implements SonarScanService {
         throw new SoldatiException("Timeout: SonarQube non ha completato l'elaborazione per projectKey=" + projectKey);
     }
 
-    // attesa tra un controllo e l'altro; se il thread viene interrotto si ripristina il flag e si interrompe l'analisi
+    // attesa tra un controllo e l'altro
     private void pausa(String projectKey) {
         try {
-            TimeUnit.SECONDS.sleep(POLL_INTERVAL_SECONDS);
+            TimeUnit.SECONDS.sleep(intervalloSecondi);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new SoldatiException("Attesa di SonarQube interrotta per projectKey=" + projectKey, e);
@@ -166,17 +184,10 @@ public class SonarScanImpl implements SonarScanService {
         List<SonarRuleDTO> regole = new ArrayList<>();
 
         try {
-            Set<String> giaPresenti = violate.stream()
-                    .map(SonarRuleDTO::getRuleKey)
-                    .collect(Collectors.toSet());
+            List<String> chiavi = SonarScanMapper.regoleSenzaViolazioni(
+                    kpiConfigService.leggiKpiCompliance().values(), violate, sonarApiService.getRegoleAttive(projectKey));
 
-            Set<String> attive = sonarApiService.getRegoleAttive(projectKey);
-
-            for (KpiConfigDTO kpi : kpiConfigService.leggiKpiCompliance().values()) {
-                String chiave = kpi.getChiave();
-                if (giaPresenti.contains(chiave) || !attive.contains(chiave)) {
-                    continue;
-                }
+            for (String chiave : chiavi) {
                 regole.add(SonarScanMapper.buildRule(chiave, sonarApiService.getRuleDetails(chiave), 0));
             }
 

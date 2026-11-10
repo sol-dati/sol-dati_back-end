@@ -6,19 +6,19 @@ import java.util.Locale;
 import java.util.Map;
 
 import com.soldati.dto.input.SonarKpiReq;
-import com.soldati.models.TipoControllo;
+import com.soldati.enums.Controllo;
+
+import lombok.NoArgsConstructor;
 
 // metriche calcolate a partire da quelle di Sonar: complessità per funzione e LOC per linguaggio
+@NoArgsConstructor
 public final class MetricheDerivate {
 
     public static final String CHIAVE_COMPLESSITA_FUNZIONE = "function_complexity";
 
     public static final String CHIAVE_DISTRIBUZIONE_LOC = "ncloc_language_distribution";
     public static final String CHIAVE_LOC_LINGUAGGIO = "ncloc_language";
-
-    private MetricheDerivate() {
-    }
-
+    
     // complessità: complexity / functions
     public static SonarKpiReq complessitaPerFunzione(Long idProcesso, Map<String, String> metriche) {
 
@@ -35,7 +35,7 @@ public final class MetricheDerivate {
 
             SonarKpiReq riga = new SonarKpiReq();
             riga.setSonarProcessId(idProcesso);
-            riga.setSonarControlType(TipoControllo.TIPO_METRICA);
+            riga.setSonarControlType(Controllo.METRICA.getCodice());
             riga.setSonarKey(CHIAVE_COMPLESSITA_FUNZIONE);
             riga.setSonarValues(String.format(Locale.ROOT, "%.1f", complessita / funzioni));
             riga.setLanguage("Complexity");
@@ -65,7 +65,7 @@ public final class MetricheDerivate {
 
             SonarKpiReq riga = new SonarKpiReq();
             riga.setSonarProcessId(idProcesso);
-            riga.setSonarControlType(TipoControllo.TIPO_METRICA);
+            riga.setSonarControlType(Controllo.METRICA.getCodice());
             riga.setSonarKey(CHIAVE_LOC_LINGUAGGIO);
             riga.setSonarValues(parti[1].trim());
             riga.setLanguage(parti[0].trim());     // chiave del linguaggio Sonar (java, js, xml...)

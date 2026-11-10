@@ -49,4 +49,34 @@ public class DashboardController {
         }
         return ResponseEntity.status(status).body(r);
     }
+    
+    // kpi con severità blocker e critical dell'ultima analisi del tag
+    @GetMapping("/{projectId}/issue")
+    public ResponseEntity<Object> issue(@PathVariable Long projectId) {
+    	Object r;
+        HttpStatus status = HttpStatus.OK;
+        try {
+            r = dashboardService.issue(projectId);
+        } catch (Exception e) {
+            log.error("Errore", e);
+            r = e.getMessage();
+            status = HttpStatus.BAD_REQUEST;
+        }
+        return ResponseEntity.status(status).body(r);
+    }
+    
+    // numero di file e righe di codice dell'ultima analisi del tag
+    @GetMapping("/{projectId}/dimensione")
+    public ResponseEntity<Object> dimensioneCodice(@PathVariable Long projectId) {
+    	Object r;
+        HttpStatus status = HttpStatus.OK;
+        try {
+            r = dashboardService.dimensioneCodice(projectId);
+        } catch (Exception e) {
+            log.error("Errore", e);
+            r = e.getMessage();
+            status = HttpStatus.BAD_REQUEST;
+        }
+        return ResponseEntity.status(status).body(r);
+    }
 }

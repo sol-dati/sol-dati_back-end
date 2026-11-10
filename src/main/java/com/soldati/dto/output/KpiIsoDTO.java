@@ -2,6 +2,9 @@ package com.soldati.dto.output;
 
 import java.math.BigDecimal;
 
+import com.soldati.enums.EsitoSoglia;
+import com.soldati.enums.GruppoKpi;
+
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,10 +17,12 @@ public class KpiIsoDTO {
 
     private String chiave;
     private String nome;
+    private String descrizione;
+    private GruppoKpi gruppo;
     private String tipoControllo;
     private BigDecimal sogliaMin;
     private BigDecimal sogliaMax;
     private boolean calcCompliance;
     private String valore;
-    private String esito;
+    private EsitoSoglia esito;
 }

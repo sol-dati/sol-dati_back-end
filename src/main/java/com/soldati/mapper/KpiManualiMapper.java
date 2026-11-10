@@ -8,6 +8,7 @@ import com.soldati.dto.input.KpiManualeReq;
 import com.soldati.dto.input.KpiManualiReq;
 import com.soldati.dto.output.KpiConfigDTO;
 import com.soldati.dto.output.KpiManualeDTO;
+import com.soldati.enums.TipoKpi;
 import com.soldati.models.IsoCode;
 import com.soldati.models.Project;
 import com.soldati.models.SeveritySonar;
@@ -16,16 +17,13 @@ import com.soldati.models.SonarProcess;
 import com.soldati.models.TipoControllo;
 import com.soldati.regole.ComplianceCalculator;
 
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor
 public final class KpiManualiMapper {
 
-    // codice di kpi_compliance.type_kpi_cod per i KPI inseriti a mano
-    public static final String TIPO_KPI_MANUALE = "M";
-
-    private KpiManualiMapper() {
-    }
-
     public static boolean isManuale(KpiConfigDTO kpi) {
-        return kpi.getTipoKpi() != null && TIPO_KPI_MANUALE.equals(kpi.getTipoKpi().trim());
+        return kpi.getTipoKpi() != null && TipoKpi.MANUALE.getCodice().equals(kpi.getTipoKpi().trim());
     }
 
     public static KpiManualeDTO buildKpiManualeDTO(KpiConfigDTO kpi, String valore) {

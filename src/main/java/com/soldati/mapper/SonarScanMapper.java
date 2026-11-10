@@ -2,23 +2,27 @@ package com.soldati.mapper;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.soldati.dto.input.AvviaSqReq;
 import com.soldati.dto.input.SonarProcessReq;
+import com.soldati.dto.output.KpiConfigDTO;
 import com.soldati.dto.output.SonarResultDTO;
 import com.soldati.dto.output.SonarRuleDTO;
 
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor
 public final class SonarScanMapper {
-
-    private SonarScanMapper() {
-    }
-
-    @SuppressWarnings("unchecked")
+    
+	@SuppressWarnings("unchecked")
     public static SonarResultDTO buildSonarResult(String projectKey, Map<String, Object> resultSonar, List<SonarRuleDTO> rules) {
 
         Map<String, Object> component = (Map<String, Object>) resultSonar.get("component");
@@ -76,6 +80,31 @@ public final class SonarScanMapper {
             return null;
         }
         return String.valueOf(value);
+    }
+    
+    // campi obbligatori della richiesta
+    public static void validaRichiesta(AvviaSqReq req) {
+        if (req.getProjectName() == null || req.getProjectName().isBlank()) {
+            throw new IllegalArgumentException("projectName non può essere vuoto");
+        }
+        if (req.getTag() == null || req.getTag().isBlank()) {
+            throw new IllegalArgumentException("tag non può essere vuoto");
+        }
+        if (req.getRelease() == null) {
+            throw new IllegalArgumentException("release obbligatoria");
+        }
+    }
+    
+    public static List<String> regoleSenzaViolazioni(Collection<KpiConfigDTO> catalogo, List<SonarRuleDTO> violate, Set<String> attive) {
+	        
+    	Set<String> giaPresenti = violate.stream()
+                .map(SonarRuleDTO::getRuleKey)
+                .collect(Collectors.toSet());
+    	
+        return catalogo.stream()
+                .map(KpiConfigDTO::getChiave)
+                .filter(chiave -> attive.contains(chiave) && !giaPresenti.contains(chiave))
+                .toList();
     }
 
     public static String buildProjectKey(AvviaSqReq req) {

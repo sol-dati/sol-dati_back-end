@@ -13,8 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.soldati.dto.input.KpiManualiReq;
 import com.soldati.dto.output.KpiConfigDTO;
 import com.soldati.dto.output.KpiManualeDTO;
+import com.soldati.enums.Inserimento;
+import com.soldati.enums.Controllo;
 import com.soldati.mapper.KpiManualiMapper;
-import com.soldati.mapper.Mapper;
 import com.soldati.models.IsoCode;
 import com.soldati.models.Project;
 import com.soldati.models.SeveritySonar;
@@ -30,8 +31,6 @@ import com.soldati.repository.SonarProcessRepo;
 import com.soldati.repository.TipoControlloRepo;
 import com.soldati.service.interfaces.KpiConfigService;
 import com.soldati.service.interfaces.KpiManualiService;
-import com.soldati.service.interfaces.SogliaService;
-import com.soldati.service.interfaces.TipoInserimentoService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,8 +47,6 @@ public class KpiManualiImpl implements KpiManualiService {
     private final IsoCodeRepo isoCodeRepo;
     private final SeveritySonarRepo severityRepo;
     private final KpiConfigService kpiConfigService;
-    private final SogliaService sogliaService;
-    private final TipoInserimentoService tipoInserimentoService;
 
     @Override
     @Transactional(readOnly = true)
@@ -58,7 +55,7 @@ public class KpiManualiImpl implements KpiManualiService {
         Project project = trovaProject(projectName, tag);
 
         Map<String, String> valori = sonarFactRepo.findUltimaAnalisiId(project.getId())
-                .map(id -> KpiManualiMapper.valoriDaFact(sonarFactRepo.findByProcessoAndTipo(id, TipoControllo.TIPO_MANUALE)))
+                .map(id -> KpiManualiMapper.valoriDaFact(sonarFactRepo.findByProcessoAndTipo(id, Controllo.MANUALE.getCodice())))
                 .orElse(Map.of());
 
         return catalogoManuali().values().stream()
@@ -92,10 +89,10 @@ public class KpiManualiImpl implements KpiManualiService {
 
         Project project = trovaProject(projectName, tag);
 
-        sonarFactRepo.findAnalisiPrecedenteConTipo(project.getId(), TipoControllo.TIPO_MANUALE, processoNuovo)
+        sonarFactRepo.findAnalisiPrecedenteConTipo(project.getId(), Controllo.MANUALE.getCodice(), processoNuovo)
                 .ifPresent(precedente -> {
                     Map<String, String> valori = KpiManualiMapper.valoriDaFact(
-                            sonarFactRepo.findByProcessoAndTipo(precedente, TipoControllo.TIPO_MANUALE));
+                            sonarFactRepo.findByProcessoAndTipo(precedente, Controllo.MANUALE.getCodice()));
                     sostituisciValori(processoNuovo, project, valori);
                     log.info("Ricopiati {} KPI manuali di {} / {} dall'analisi {} alla {}", valori.size(),
                             projectName, tag, precedente, processoNuovo);
@@ -123,14 +120,16 @@ public class KpiManualiImpl implements KpiManualiService {
 
     private void sostituisciValori(Long processoId, Project project, Map<String, String> valori) {
 
-        sonarFactRepo.deleteAll(sonarFactRepo.findByProcessoAndTipo(processoId, TipoControllo.TIPO_MANUALE));
+        sonarFactRepo.deleteAll(sonarFactRepo.findByProcessoAndTipo(processoId, Controllo.MANUALE.getCodice()));
 
         Map<String, KpiConfigDTO> catalogo = catalogoManuali();
+        
         SonarProcess processo = sonarProcessRepo.getReferenceById(processoId);
-        TipoControllo tipo = tipoControlloRepo.findBySonarControlType(TipoControllo.TIPO_MANUALE)
-                .orElseThrow(() -> new IllegalStateException("Tipo controllo non presente: " + TipoControllo.TIPO_MANUALE));
-        String idTipoInserimento = tipoInserimentoService
-                .findByDescrizione(Mapper.createTipoInserimento(ComplianceCalculator.INSERIMENTO_MANUALE)).getIdTipo();
+        
+        TipoControllo tipo = tipoControlloRepo.findBySonarControlType(Controllo.MANUALE.getCodice())
+                .orElseThrow(() -> new IllegalStateException("Tipo controllo non presente: " + Controllo.MANUALE));
+        
+        String idTipoInserimento = Inserimento.MANUALE.getIdTipo();
 
         List<SonarFact> facts = new ArrayList<>();
 
@@ -143,9 +142,10 @@ public class KpiManualiImpl implements KpiManualiService {
 
             IsoCode iso = isoCodeRepo.findById(kpi.getIsoCode())
                     .orElseThrow(() -> new IllegalStateException("Codice ISO non presente in iso25010code: " + kpi.getIsoCode()));
+            
             SeveritySonar severity = kpi.getSeverita() != null ? severityRepo.findBySeverity(kpi.getSeverita()).orElse(null) : null;
-            Integer idSoglia = sogliaService
-                    .findByDescrizione(Mapper.createSoglia(ComplianceCalculator.esitoSoglia(v.getValue(), kpi))).getIdSoglia();
+            
+            Integer idSoglia = ComplianceCalculator.esitoSoglia(v.getValue(), kpi).getIdSoglia();
 
             facts.add(KpiManualiMapper.createFact(processo, project, tipo, kpi, v.getValue(), iso, severity, idSoglia,
                     idTipoInserimento));

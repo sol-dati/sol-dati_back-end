@@ -18,7 +18,6 @@ import com.soldati.dto.input.SonarProcessReq;
 import com.soldati.dto.output.KpiConfigDTO;
 import com.soldati.dto.output.SonarProcessDTO;
 import com.soldati.dto.output.SonarResultDTO;
-import com.soldati.mapper.Mapper;
 import com.soldati.mapper.SonarSaveMapper;
 import com.soldati.models.IsoCode;
 import com.soldati.models.LanguageSonar;
@@ -39,10 +38,8 @@ import com.soldati.repository.TypeSonarRepo;
 import com.soldati.service.interfaces.CatalogoSonarService;
 import com.soldati.service.interfaces.KpiConfigService;
 import com.soldati.service.interfaces.KpiManualiService;
-import com.soldati.service.interfaces.SogliaService;
 import com.soldati.service.interfaces.SonarApiService;
 import com.soldati.service.interfaces.SonarSaveService;
-import com.soldati.service.interfaces.TipoInserimentoService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,8 +59,6 @@ public class SonarSaveImpl implements SonarSaveService {
     private final SonarFactRepo sonarFactRepo;
     private final IsoCodeRepo isoCodeRepo;
     private final KpiConfigService kpiConfigService;
-    private final SogliaService sogliaService;
-    private final TipoInserimentoService tipoInserimentoService;
     private final KpiManualiService kpiManualiService;
 
     @Override
@@ -146,10 +141,6 @@ public class SonarSaveImpl implements SonarSaveService {
         Map<String, KpiConfigDTO> kpiCompliance = kpiConfigService.leggiKpiCompliance();
         Map<String, KpiConfigDTO> kpiOthers = kpiConfigService.leggiKpiOthers();
 
-        // descrizione -> id delle tabelle soglie e tipo_inserimento (letti una volta per analisi)
-        Map<String, Integer> idSoglie = new HashMap<>();
-        Map<String, String> idTipiInserimento = new HashMap<>();
-
         List<SonarFact> facts = new ArrayList<>();
 
         // chiavi di Sonar che non sono in nessuno dei due cataloghi: non vengono salvate
@@ -201,12 +192,9 @@ public class SonarSaveImpl implements SonarSaveService {
             fact.setIso_code(isoLette.computeIfAbsent(codiceIso, c -> isoCodeRepo.findById(c)
                     .orElseThrow(() -> new IllegalStateException("Codice ISO non presente in iso25010code: " + c))));
 
-            // id di soglie e tipo_inserimento letti dal database per descrizione (una volta per analisi)
-            Integer idSoglia = idSoglie.computeIfAbsent(ComplianceCalculator.esitoSoglia(r.getSonarValues(), compliance),
-                    d -> sogliaService.findByDescrizione(Mapper.createSoglia(d)).getIdSoglia());
-
-            String idTipoInserimento = idTipiInserimento.computeIfAbsent(ComplianceCalculator.tipoInserimento(compliance),
-                    d -> tipoInserimentoService.findByDescrizione(Mapper.createTipoInserimento(d)).getIdTipo());
+            // id di soglie e tipo_inserimento dagli enum
+            Integer idSoglia = ComplianceCalculator.esitoSoglia(r.getSonarValues(), compliance).getIdSoglia();
+            String idTipoInserimento = ComplianceCalculator.tipoInserimento(compliance).getIdTipo();
 
             SonarSaveMapper.completaFact(fact, compliance, others, idSoglia, idTipoInserimento);
 

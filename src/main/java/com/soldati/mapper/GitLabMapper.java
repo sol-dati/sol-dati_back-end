@@ -4,10 +4,10 @@ import java.util.Map;
 
 import com.soldati.dto.output.GitLabProjectDTO;
 
-public final class GitLabMapper {
+import lombok.NoArgsConstructor;
 
-    private GitLabMapper() {
-    }
+@NoArgsConstructor
+public final class GitLabMapper {
 
     // progetto restituito dalle API GitLab -> DTO con id, nome e path
     public static GitLabProjectDTO buildGitLabProjectDTO(Map<String, Object> project) {

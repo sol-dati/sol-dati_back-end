@@ -10,6 +10,7 @@ import com.soldati.dto.output.KpiConfigDTO;
 import com.soldati.dto.output.SonarProcessDTO;
 import com.soldati.dto.output.SonarResultDTO;
 import com.soldati.dto.output.SonarRuleDTO;
+import com.soldati.enums.Controllo;
 import com.soldati.models.LanguageSonar;
 import com.soldati.models.Project;
 import com.soldati.models.SeveritySonar;
@@ -19,10 +20,10 @@ import com.soldati.models.TipoControllo;
 import com.soldati.models.TypeSonar;
 import com.soldati.regole.MetricheDerivate;
 
-public final class SonarSaveMapper {
+import lombok.NoArgsConstructor;
 
-    private SonarSaveMapper() {
-    }
+@NoArgsConstructor
+public final class SonarSaveMapper {
 
     public static List<SonarKpiReq> costruisciKpiDaMetriche(Long idProcesso, SonarResultDTO result, List<Map<String, Object>> catalogoMetriche) {
 
@@ -41,7 +42,7 @@ public final class SonarSaveMapper {
 
             SonarKpiReq kpiReq = new SonarKpiReq();
             kpiReq.setSonarProcessId(idProcesso);
-            kpiReq.setSonarControlType(TipoControllo.TIPO_METRICA);
+            kpiReq.setSonarControlType(Controllo.METRICA.getCodice());
             kpiReq.setSonarKey(metrica.getKey());
             kpiReq.setSonarValues(metrica.getValue());
 
@@ -80,7 +81,7 @@ public final class SonarSaveMapper {
 
             SonarKpiReq kpiReq = new SonarKpiReq();
             kpiReq.setSonarProcessId(idProcesso);
-            kpiReq.setSonarControlType(TipoControllo.TIPO_RULE);
+            kpiReq.setSonarControlType(Controllo.REGOLA.getCodice());
             kpiReq.setSonarKey(rule.getRuleKey());
             kpiReq.setSonarValues(String.valueOf(rule.getIssuesCount()));
 

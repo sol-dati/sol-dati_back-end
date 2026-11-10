@@ -9,11 +9,11 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 import com.soldati.dto.input.SonarKpiReq;
+import com.soldati.enums.Controllo;
 import com.soldati.exception.SoldatiException;
 import com.soldati.models.LanguageSonar;
 import com.soldati.models.MetricaSq;
 import com.soldati.models.SeveritySonar;
-import com.soldati.models.TipoControllo;
 import com.soldati.models.TypeSonar;
 import com.soldati.repository.LanguageSonarRepo;
 import com.soldati.repository.MetricaSqRepo;
@@ -176,7 +176,7 @@ public class CatalogoSonarImpl implements CatalogoSonarService {
                 .collect(Collectors.toMap(LanguageSonar::getLanguage, Function.identity()));
 
         for (SonarKpiReq r : righe) {
-            if (TipoControllo.TIPO_METRICA.equals(r.getSonarControlType())
+            if (Controllo.METRICA.getCodice().equals(r.getSonarControlType())
                     && r.getLanguage() != null
                     && !languages.containsKey(r.getLanguage())) {
 

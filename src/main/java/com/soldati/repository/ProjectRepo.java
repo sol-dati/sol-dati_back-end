@@ -5,11 +5,13 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.soldati.models.Project;
+import com.soldati.models.Stato;
 
 @Repository
 public interface ProjectRepo extends JpaRepository<Project, Long> {
@@ -21,7 +23,7 @@ public interface ProjectRepo extends JpaRepository<Project, Long> {
 
     Optional<Project> findByProjectNameAndTag(String projectName, String tag);
     
- // tag con almeno un'analisi salvata e data dell'ultima, dalla più recente (come l'elenco della dashboard Pentaho)
+ // tag con almeno un'analisi salvata e data dell'ultima, dalla più recente
     @Query("""
             select p, max(f.sonarProcess.processDate) from SonarFact f
             join f.project p
@@ -29,4 +31,8 @@ public interface ProjectRepo extends JpaRepository<Project, Long> {
             order by max(f.sonarProcess.processDate) desc
             """)
     List<Object[]> findAnalizzati();
+    
+    @Modifying(clearAutomatically = true)
+    @Query("update Project p set p.stato = :a where p.stato = :da")
+    int cambiaStato(@Param("da") Stato da, @Param("a") Stato a);
 }

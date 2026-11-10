@@ -13,10 +13,12 @@ import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 // operazioni su file e cartelle: zip scaricato da GitLab, pom.xml, cartella temporanea dei sorgenti
 @Slf4j
+@NoArgsConstructor
 public final class FileUtils {
 
     // prefisso della cartella temporanea in cui GitLabImpl scarica ed estrae i sorgenti
@@ -26,9 +28,6 @@ public final class FileUtils {
 
     // (analisi con SonarScanner CLI)
     public static final String CARTELLA_BINARI_VUOTA = ".sonar-binari-vuoti";
-
-    private FileUtils() {
-    }
 
     // estrae zip dentro la cartella di destinazione indicata.
     public static void estraiZip(Path fileZip, Path cartellaDestinazione) throws IOException {

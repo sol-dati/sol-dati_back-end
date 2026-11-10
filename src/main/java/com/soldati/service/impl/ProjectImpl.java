@@ -11,10 +11,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.soldati.dto.output.ProjectDTO;
+import com.soldati.enums.StatoAnalisi;
 import com.soldati.exception.SoldatiException;
 import com.soldati.mapper.Mapper;
 import com.soldati.models.Project;
+import com.soldati.models.Stato;
 import com.soldati.repository.ProjectRepo;
+import com.soldati.repository.StatoRepo;
 import com.soldati.service.interfaces.ComplianceService;
 import com.soldati.service.interfaces.GitLabService;
 import com.soldati.service.interfaces.ProjectService;
@@ -28,6 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ProjectImpl implements ProjectService {
 
     private final ProjectRepo repo;
+    private final StatoRepo statoRepo;
     private final GitLabService gitLabService;
     private final ComplianceService complianceService;
 
@@ -55,12 +59,13 @@ public class ProjectImpl implements ProjectService {
         Set<String> tagPresenti = repo.findTagSetByProjectName(projectName);
 
         List<Project> newRec = new ArrayList<>();
+        Stato daAnalizzare = stato(StatoAnalisi.DA_ANALIZZARE);
 
         for (String tag : tagGitLab) {
             if (tag == null || tag.isBlank() || tagPresenti.contains(tag)) {
                 continue;
             }
-            newRec.add(Mapper.createProject(projectName, tag));
+            newRec.add(Mapper.createProject(projectName, tag, daAnalizzare));
             tagPresenti.add(tag);
         }
 
@@ -91,5 +96,28 @@ public class ProjectImpl implements ProjectService {
         return repo.findAnalizzati().stream()
                 .map(riga -> Mapper.buildProgettoAnalizzatoDTO(riga, compliance))
                 .toList();
+    }
+    
+    @Override
+    @Transactional
+    public void aggiornaStato(String projectName, String tag, StatoAnalisi stato) throws SoldatiException {
+
+        Project project = repo.findByProjectNameAndTag(projectName.trim().toLowerCase(Locale.ROOT), tag)
+                .orElseThrow(() -> new SoldatiException("Tag non presente: " + projectName + " / " + tag));
+
+        project.setStato(stato(stato));
+        log.debug("Stato di {} / {} -> {}", projectName, tag, stato);
+    }
+
+    @Override
+    @Transactional
+    public int chiudiAnalisiInterrotte() throws SoldatiException {
+        return repo.cambiaStato(stato(StatoAnalisi.IN_CORSO), stato(StatoAnalisi.ERRORE));
+    }
+
+    // riga di deco_stato corrispondente allo stato
+    private Stato stato(StatoAnalisi stato) {
+        return statoRepo.findById(stato.getIdStato())
+                .orElseThrow(() -> new SoldatiException("Riga di deco_stato mancante per " + stato + " (id " + stato.getIdStato() + ")"));
     }
 }

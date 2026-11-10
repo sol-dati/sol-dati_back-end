@@ -6,10 +6,10 @@ import com.soldati.dto.output.KpiConfigDTO;
 import com.soldati.models.KpiCompliance;
 import com.soldati.models.KpiOthers;
 
-public final class KpiConfigMapper {
+import lombok.NoArgsConstructor;
 
-    private KpiConfigMapper() {
-    }
+@NoArgsConstructor
+public final class KpiConfigMapper {
 
     public static KpiConfigDTO buildKpiCompliance(KpiCompliance k) {
         return buildKpiConfigDTO(k.getKeyKpi(), k.getKpiName(), k.getIsoCode(), k.getTargetMin(), k.getTargetMax(),
