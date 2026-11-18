@@ -27,7 +27,7 @@ public final class MetricheDerivate {
         }
 
         try {
-            double complessita = Double.parseDouble(metriche.get("complexity"));
+            double complessita = Double.parseDouble(metriche.get("complexity")); 
             double funzioni = Double.parseDouble(metriche.get("functions"));
             if (funzioni <= 0) {
                 return null;
@@ -63,7 +63,7 @@ public final class MetricheDerivate {
                 continue;
             }
 
-            SonarKpiReq riga = new SonarKpiReq();
+            SonarKpiReq riga = new SonarKpiReq(); 
             riga.setSonarProcessId(idProcesso);
             riga.setSonarControlType(Controllo.METRICA.getCodice());
             riga.setSonarKey(CHIAVE_LOC_LINGUAGGIO);
@@ -74,4 +74,11 @@ public final class MetricheDerivate {
         }
         return righe;
     }
+     
+    // chiavi dei linguaggi presenti nel progetto
+//    public static Set<String> linguaggi(String distribuzione) {
+//        return locPerLinguaggio(null, distribuzione).stream()
+//                .map(SonarKpiReq::getLanguage)
+//                .collect(Collectors.toSet());
+//    }
 }

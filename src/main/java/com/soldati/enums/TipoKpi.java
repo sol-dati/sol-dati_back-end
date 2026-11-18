@@ -9,7 +9,7 @@ import lombok.Getter;
 public enum TipoKpi {
 
     AUTOMATICO("A"),
-    MANUALE("M");
+    MANUALE("M"); 
 
     private final String codice;
 }

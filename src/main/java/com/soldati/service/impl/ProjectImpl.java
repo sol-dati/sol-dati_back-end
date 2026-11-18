@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,43 +36,32 @@ public class ProjectImpl implements ProjectService {
     private final GitLabService gitLabService;
     private final ComplianceService complianceService;
 
+    // impedisce due sincronizzazioni insieme (bottone e programmazione)
+    private final AtomicBoolean sincronizzazioneInCorso = new AtomicBoolean(false);
+     
     @Override
     public int sincronizzaDaGitLab() throws SoldatiException {
 
-        List<String> projectNames = gitLabService.getProjectNames();
-
-        int nuove = 0;
-
-        for (String nome : projectNames) {
-            try {
-                nuove += create(nome);
-            } catch (Exception e) {
-                log.warn("Sync GitLab fallita per il progetto {}: {}", nome, e.getMessage());
-            }
+        if (!sincronizzazioneInCorso.compareAndSet(false, true)) {
+            throw new SoldatiException("Sincronizzazione con GitLab già in corso: riprova tra poco");
         }
 
-        return nuove;
-    }
+        try {
+            List<String> projectNames = gitLabService.getProjectNames();
 
-    private int create(String projectName) throws SoldatiException {
-
-        List<String> tagGitLab = gitLabService.getTags(projectName);
-        Set<String> tagPresenti = repo.findTagSetByProjectName(projectName);
-
-        List<Project> newRec = new ArrayList<>();
-        Stato daAnalizzare = stato(StatoAnalisi.DA_ANALIZZARE);
-
-        for (String tag : tagGitLab) {
-            if (tag == null || tag.isBlank() || tagPresenti.contains(tag)) {
-                continue;
+            int nuove = 0;
+            for (String nome : projectNames) {
+                try {
+                    nuove += create(nome);
+                } catch (Exception e) {
+                    log.warn("Sync GitLab fallita per il progetto {}: {}", nome, e.getMessage());
+                }
             }
-            newRec.add(Mapper.createProject(projectName, tag, daAnalizzare));
-            tagPresenti.add(tag);
+            return nuove;
+
+        } finally {
+            sincronizzazioneInCorso.set(false);
         }
-
-        repo.saveAll(newRec);
-
-        return newRec.size();
     }
 
     @Override
@@ -114,10 +104,48 @@ public class ProjectImpl implements ProjectService {
     public int chiudiAnalisiInterrotte() throws SoldatiException {
         return repo.cambiaStato(stato(StatoAnalisi.IN_CORSO), stato(StatoAnalisi.ERRORE));
     }
+    
+    @Override
+    @Transactional
+    public void avviaElaborazione(String projectName, String tag) throws SoldatiException {
 
+        String nome = projectName.trim().toLowerCase(Locale.ROOT);
+
+        if (repo.segnaInCorso(nome, tag, stato(StatoAnalisi.IN_CORSO)) == 0) {
+            // il tag non esiste, oppure è già in corso
+            repo.findByProjectNameAndTag(nome, tag)
+                    .orElseThrow(() -> new SoldatiException("Tag non presente: " + projectName + " / " + tag));
+            throw new SoldatiException("Analisi già in corso per " + projectName + " (" + tag + ")");
+        }
+    }
+
+    
+    private int create(String projectName) throws SoldatiException {
+
+        List<String> tagGitLab = gitLabService.getTags(projectName);
+        Set<String> tagPresenti = repo.findTagSetByProjectName(projectName);
+
+        List<Project> newRec = new ArrayList<>();
+        Stato daAnalizzare = stato(StatoAnalisi.DA_ANALIZZARE);
+
+        for (String tag : tagGitLab) {
+            if (tag == null || tag.isBlank() || tagPresenti.contains(tag)) {
+                continue;
+            }
+            newRec.add(Mapper.createProject(projectName, tag, daAnalizzare));
+            tagPresenti.add(tag);
+        }
+
+        repo.saveAll(newRec);
+
+        return newRec.size();
+    }
+    
     // riga di deco_stato corrispondente allo stato
     private Stato stato(StatoAnalisi stato) {
         return statoRepo.findById(stato.getIdStato())
                 .orElseThrow(() -> new SoldatiException("Riga di deco_stato mancante per " + stato + " (id " + stato.getIdStato() + ")"));
     }
+
+	
 }

@@ -15,4 +15,7 @@ public interface ProjectService {
 
     // tag rimasti in corso da un'esecuzione interrotta -> errore
     int chiudiAnalisiInterrotte() throws SoldatiException;
+    
+    //eccezione se un'analisi dello stesso tag è già in corso
+    void avviaElaborazione(String projectName, String tag) throws SoldatiException;
 }

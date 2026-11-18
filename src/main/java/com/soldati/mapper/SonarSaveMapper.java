@@ -33,7 +33,7 @@ public final class SonarSaveMapper {
         for (Map<String, Object> voce : catalogoMetriche) {
             Object chiave = voce.get("key");
 
-            if (chiave != null) {
+            if (chiave != null) { 
                 metrichePerChiave.put(chiave.toString(), voce);
             }
         }

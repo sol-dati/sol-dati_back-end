@@ -35,4 +35,13 @@ public interface ProjectRepo extends JpaRepository<Project, Long> {
     @Modifying(clearAutomatically = true)
     @Query("update Project p set p.stato = :a where p.stato = :da")
     int cambiaStato(@Param("da") Stato da, @Param("a") Stato a);
+    
+    //restituisce 0 se c'è già un'analisi in corso
+    @Modifying(clearAutomatically = true)
+    @Query("""
+            update Project p set p.stato = :inCorso
+            where p.projectName = :projectName and p.tag = :tag
+              and (p.stato is null or p.stato <> :inCorso)
+            """)
+    int segnaInCorso(@Param("projectName") String projectName, @Param("tag") String tag, @Param("inCorso") Stato inCorso);
 }

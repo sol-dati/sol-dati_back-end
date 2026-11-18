@@ -25,12 +25,12 @@ public final class ComplianceCalculator {
 
     // conteggio / divisore (kpi entro soglia / kpi che concorrono alla compliance), 4 decimali; divisore 0 -> 0
     public static BigDecimal quota(long conteggio, long divisore) {
-        if (divisore == 0) {
-            return BigDecimal.ZERO;
+        if (divisore == 0) { 
+            return BigDecimal.ZERO; 
         }
         return BigDecimal.valueOf(conteggio).divide(BigDecimal.valueOf(divisore), 4, RoundingMode.HALF_UP);
     }
-
+ 
     // kpi del catalogo che concorrono alla compliance in una categoria ISO
     public static long kpiCompliance(Map<String, KpiConfigDTO> catalogo, String isoCode) {
         return catalogo.values().stream()
@@ -42,13 +42,13 @@ public final class ComplianceCalculator {
     public static long contaEsito(List<SonarFact> righe, Map<String, KpiConfigDTO> catalogo, String isoCode, EsitoSoglia esito) {
         return righe.stream()
                 .filter(f -> Integer.valueOf(1).equals(f.getCalcCompliance()))
-                .filter(f -> {
-                    KpiConfigDTO k = catalogo.get(f.getFkKpiCompliance());
+                .filter(f -> { 
+                	KpiConfigDTO k = catalogo.get(f.getFkKpiCompliance());
                     return k != null && isoCode.equals(k.getIsoCode());
                 })
                 .filter(f -> Integer.valueOf(esito.getIdSoglia()).equals(f.getFkSoglia()))
-                .count();
-    }
+                .count(); 
+    } 
 
     // compliance del piano qualità: somma di KPI entro soglia / KPI che concorrono diviso le 8 categorie ISO 25010
     public static BigDecimal compliance(List<SonarFact> righe, Map<String, KpiConfigDTO> catalogo, List<String> categorie) {
@@ -96,13 +96,13 @@ public final class ComplianceCalculator {
         boolean sopraMin = min == null || valore.compareTo(min) >= 0;
         boolean sottoMax = max == null || valore.compareTo(max) <= 0;
         return sopraMin && sottoMax ? EsitoSoglia.ENTRO : EsitoSoglia.FUORI;
-    }
-
+    } 
+ 
     // tipo di inserimento della riga 
     public static Inserimento tipoInserimento(KpiConfigDTO compliance) {
         return compliance != null ? Inserimento.MANUALE : Inserimento.AUTOMATICO;
     }
-
+ 
     public static String codiceIso(KpiConfigDTO compliance, KpiConfigDTO others) {
         return compliance != null ? compliance.getIsoCode() : others.getIsoCode();
     }

@@ -4,4 +4,4 @@ package com.soldati.enums;
 public enum GruppoKpi {
     METRICA,
     REGOLA
-}
+} 

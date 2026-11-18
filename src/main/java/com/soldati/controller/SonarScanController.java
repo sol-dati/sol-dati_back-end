@@ -41,7 +41,7 @@ public class SonarScanController {
             status = HttpStatus.BAD_REQUEST;
         }
 
-        return ResponseEntity.status(status).body(r);
+        return ResponseEntity.status(status).body(r); 
     }
 
     @GetMapping("/status")

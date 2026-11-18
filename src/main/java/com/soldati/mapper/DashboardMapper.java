@@ -35,8 +35,8 @@ public final class DashboardMapper {
         BigDecimal quotaFuori = ComplianceCalculator.quota(fuori, kpiCompliance);
         return IsoSintesiDTO.builder()
                 .codice(iso.getIso_code())
-                .descrizione(iso.getDescription())
-                .kpiCompliance(kpiCompliance)
+                .descrizione(iso.getDescription()) 
+                .kpiCompliance(kpiCompliance) 
                 .entro(quotaEntro)
                 .fuori(quotaFuori)
                 .np(BigDecimal.ONE.subtract(quotaEntro).subtract(quotaFuori))
@@ -111,7 +111,7 @@ public final class DashboardMapper {
                         .build())
                 .sorted(Comparator.comparingLong(IssueIsoDTO::getViolati).reversed()
                         .thenComparing(IssueIsoDTO::getDescrizione))
-                .toList();
+                .toList(); 
 
         return IssueSezioneDTO.builder()
                 .severita(severita)
@@ -128,7 +128,7 @@ public final class DashboardMapper {
                 .filter(f -> CHIAVE_FILE.equals(f.getSonarKey()))
                 .findFirst()
                 .map(f -> ComplianceCalculator.valoreNumerico(f.getSonarValues()).longValue())
-                .orElse(0L);
+                .orElse(0L); 
 
         Map<String, Long> righePerLinguaggio = righe.stream()
                 .filter(f -> MetricheDerivate.CHIAVE_LOC_LINGUAGGIO.equals(f.getSonarKey()))
@@ -149,7 +149,7 @@ public final class DashboardMapper {
 
         return DimensioneCodiceDTO.builder()
                 .numeroFile(numeroFile)
-                .righeCodice(totale)
+                .righeCodice(totale) 
                 .linguaggi(linguaggi)
                 .build();
     }

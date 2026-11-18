@@ -30,7 +30,7 @@ public final class SonarScanMapper {
         if (component == null) {
             throw new IllegalStateException("Risposta SonarQube senza campo component. projectKey=" + projectKey);
         }
-
+ 
         Map<String, String> values = new HashMap<>();
 
         Object measuresObject = component.get("measures");
